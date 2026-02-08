@@ -6,8 +6,7 @@ import ePub from 'epubjs';
 import { IndexDBService } from '../../../core/services/indexdb.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import { ReadingProgressComponent } from './reading-progress/reading-progress.component';
-import { DraggableSettingsComponent, SettingsState } from './draggable-settings/draggable-settings.component';
-import { ChaptersPanelComponent } from './chapters-panel/chapters-panel.component';
+import { UnifiedSettingsPanelComponent, SettingsState } from './unified-settings-panel/unified-settings-panel.component';
 import {
   selectSelectedDocumentBookmarks,
   selectReadingProgress,
@@ -35,7 +34,7 @@ const STORAGE_KEY = 'epub-reader-settings';
 @Component({
   selector: 'app-epub-reader',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReadingProgressComponent, DraggableSettingsComponent, ChaptersPanelComponent],
+  imports: [CommonModule, FormsModule, ReadingProgressComponent, UnifiedSettingsPanelComponent],
   templateUrl: './epub-reader.component.html',
   styleUrl: './epub-reader.component.css'
 })
@@ -60,11 +59,12 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   readingGoal$ = this.store.select(selectReadingGoal);
   todayReadingTime$ = this.store.select(selectTodayReadingTime);
 
-  bookmarksOpen = signal<boolean>(false);
   isCurrentLocationBookmarked = signal<boolean>(false);
 
+  // --- Unified panel state ---
+  panelOpen = signal<boolean>(false);
+
   // --- Chapters/TOC ---
-  chaptersOpen = signal<boolean>(false);
   chapters = signal<TocItem[]>([]);
   currentChapterHref = signal<string | null>(null);
 
@@ -79,7 +79,6 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   lineHeight = signal<number>(DEFAULT_READER_SETTINGS.lineHeight);
   fontFamily = signal<string>(DEFAULT_READER_SETTINGS.fontFamily);
   theme = signal<ThemeOption>(DEFAULT_READER_SETTINGS.theme);
-  settingsOpen = signal<boolean>(false);
 
   // --- Control constraints ---
   readonly FONT_SIZE_MIN = FONT_SIZE_MIN;
@@ -175,11 +174,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
-  // Settings panel toggle
+  // Unified panel toggle
   // ---------------------------------------------------------------------------
 
-  toggleSettings(): void {
-    this.settingsOpen.update(open => !open);
+  togglePanel(): void {
+    this.panelOpen.update(open => !open);
   }
 
   // ---------------------------------------------------------------------------
@@ -315,18 +314,6 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   // Bookmarks
   // ---------------------------------------------------------------------------
 
-  toggleBookmarksPanel(): void {
-    this.bookmarksOpen.update((open) => !open);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Chapters/TOC
-  // ---------------------------------------------------------------------------
-
-  toggleChaptersPanel(): void {
-    this.chaptersOpen.update((open) => !open);
-  }
-
   private async loadTableOfContents(): Promise<void> {
     if (!this.book) return;
     try {
@@ -352,7 +339,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   onChapterSelect(chapter: TocItem): void {
     if (this.rendition) {
       this.rendition.display(chapter.href);
-      this.chaptersOpen.set(false);
+      // Panel stays open for easier navigation
     }
   }
 
@@ -390,12 +377,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   jumpToBookmark(bookmark: Bookmark): void {
     if (this.rendition) {
       this.rendition.display(bookmark.location);
-      this.bookmarksOpen.set(false);
+      // Panel stays open for easier navigation
     }
   }
 
-  removeBookmark(bookmarkId: string, event: Event): void {
-    event.stopPropagation();
+  removeBookmark(bookmarkId: string): void {
     this.store.dispatch(
       DocumentsActions.removeBookmark({ id: this.documentId, bookmarkId })
     );

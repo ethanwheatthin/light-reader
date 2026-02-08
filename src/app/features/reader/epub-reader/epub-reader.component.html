@@ -2,92 +2,23 @@
   <!-- Reading progress bar -->
   <app-reading-progress [progress]="readingProgress$ | async" [theme]="theme()"></app-reading-progress>
 
-  
-
-  <!-- Bookmarks panel -->
-  @if (bookmarksOpen()) {
-    <aside class="bookmarks-panel" role="dialog" aria-label="Bookmarks">
-      <header class="bookmarks-header">
-        <h3>🔖 Bookmarks</h3>
-        <button class="close-btn" (click)="toggleBookmarksPanel()" aria-label="Close bookmarks">✕</button>
-      </header>
-      <div class="bookmarks-list">
-        @if (bookmarks$ | async; as bookmarks) {
-          @if (bookmarks.length === 0) {
-            <p class="bookmarks-empty">No bookmarks yet. Tap 🏷️ to add one.</p>
-          }
-          @for (bm of bookmarks; track bm.id) {
-            <div class="bookmark-item" (click)="jumpToBookmark(bm)" role="button" tabindex="0">
-              <span class="bookmark-label">{{ bm.label }}</span>
-              <span class="bookmark-date">{{ bm.createdAt | date: 'short' }}</span>
-              <button
-                class="bookmark-remove"
-                (click)="removeBookmark(bm.id, $event)"
-                aria-label="Remove bookmark"
-                title="Remove">
-                ✕
-              </button>
-            </div>
-          }
-        }
-      </div>
-
-      <!-- Reading stats summary -->
-      @if (readingStats$ | async; as stats) {
-        @if (stats.totalReadingTime > 0) {
-          <div class="reading-stats-summary">
-            <h4>📊 Reading Stats</h4>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-value">{{ formatDuration(stats.totalReadingTime) }}</span>
-                <span class="stat-label">Total time</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-value">{{ stats.sessions.length }}</span>
-                <span class="stat-label">Sessions</span>
-              </div>
-              @if (todayReadingTime$ | async; as todayTime) {
-                <div class="stat-item">
-                  <span class="stat-value">{{ formatDuration(todayTime) }}</span>
-                  <span class="stat-label">Today</span>
-                </div>
-              }
-            </div>
-          </div>
-        }
-      }
-
-      <!-- Reading goal -->
-      @if (readingGoal$ | async; as goal) {
-        <div class="reading-goal-summary">
-          <h4>🎯 Reading Goal</h4>
-          <div class="goal-streak">
-            <span class="streak-flame">🔥</span>
-            <span class="streak-count">{{ goal.currentStreak }} day streak</span>
-          </div>
-        </div>
-      }
-    </aside>
-  }
-
-  <!-- Draggable settings panel -->
-  <app-draggable-settings
-    [isOpen]="settingsOpen()"
+  <!-- Unified settings panel -->
+  <app-unified-settings-panel
+    [isOpen]="panelOpen()"
+    [theme]="theme()"
     [settings]="currentSettings"
-    [theme]="theme()"
-    (settingsChange)="onSettingsChange($event)"
-    (close)="toggleSettings()">
-  </app-draggable-settings>
-
-  <!-- Chapters panel -->
-  <app-chapters-panel
-    [isOpen]="chaptersOpen()"
     [chapters]="chapters()"
-    [theme]="theme()"
     [currentChapter]="currentChapterHref()"
+    [bookmarks]="(bookmarks$ | async) ?? []"
+    [readingStats]="(readingStats$ | async) ?? null"
+    [readingGoal]="(readingGoal$ | async) ?? null"
+    [todayReadingTime]="(todayReadingTime$ | async) ?? null"
+    (close)="togglePanel()"
+    (settingsChange)="onSettingsChange($event)"
     (chapterSelect)="onChapterSelect($event)"
-    (close)="toggleChaptersPanel()">
-  </app-chapters-panel>
+    (bookmarkJump)="jumpToBookmark($event)"
+    (bookmarkRemove)="removeBookmark($event)">
+  </app-unified-settings-panel>
 
   <div #viewer class="epub-viewer"></div>
   <!-- Top bar: navigation + settings toggle -->
@@ -110,30 +41,12 @@
     }
 
     <button
-      class="bookmarks-list-toggle"
-      (click)="toggleBookmarksPanel()"
-      [attr.aria-expanded]="bookmarksOpen()"
-      aria-label="Bookmarks"
-      title="Bookmarks">
-      📑
-    </button>
-
-    <button
-      class="chapters-toggle"
-      (click)="toggleChaptersPanel()"
-      [attr.aria-expanded]="chaptersOpen()"
-      aria-label="Chapters"
-      title="Chapters">
-      📖
-    </button>
-
-    <button
-      class="settings-toggle"
-      (click)="toggleSettings()"
-      [attr.aria-expanded]="settingsOpen()"
-      aria-label="Reader settings"
-      title="Reader settings">
-      ⚙
+      class="panel-toggle"
+      (click)="togglePanel()"
+      [attr.aria-expanded]="panelOpen()"
+      aria-label="Open settings panel"
+      title="Settings & More">
+      ⚙️
     </button>
   </div>
 </div>
