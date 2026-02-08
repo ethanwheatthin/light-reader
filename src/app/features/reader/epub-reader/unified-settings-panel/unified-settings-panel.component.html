@@ -1,0 +1,255 @@
+@if (isOpen) {
+  <!-- Backdrop overlay -->
+  <div 
+    class="backdrop" 
+    (click)="closePanel()" 
+    (touchend)="closePanel()"
+    (mousedown)="$event.stopPropagation()"
+    (touchstart)="$event.stopPropagation()">
+  </div>
+  
+  <aside
+    class="unified-panel"
+    role="dialog"
+    aria-label="Reader settings panel"
+    [attr.data-theme]="theme"
+    [style.left.px]="panelX()"
+    [style.top.px]="panelY()"
+    [class.positioned]="panelX() !== null"
+    (click)="$event.stopPropagation()"
+    (touchstart)="$event.stopPropagation()">
+    
+    <!-- Drag handle header -->
+    <header
+      class="panel-header"
+      (mousedown)="onDragStart($event)"
+      (touchstart)="onDragStart($event)">
+      <span class="drag-grip" aria-hidden="true">⠿</span>
+      <h3>Reader Controls</h3>
+      <button class="close-btn" (click)="closePanel()" aria-label="Close panel">✕</button>
+    </header>
+
+    <!-- Tab navigation -->
+    <nav class="tab-nav" role="tablist">
+      <button
+        class="tab-button"
+        [class.active]="activeTab() === 'settings'"
+        (click)="switchTab('settings')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'settings'"
+        aria-label="Reader settings">
+        ⚙️ Settings
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab() === 'chapters'"
+        (click)="switchTab('chapters')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'chapters'"
+        aria-label="Table of contents">
+        📖 Chapters
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab() === 'bookmarks'"
+        (click)="switchTab('bookmarks')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'bookmarks'"
+        aria-label="Bookmarks and progress">
+        🔖 Bookmarks
+      </button>
+    </nav>
+
+    <!-- Tab content -->
+    <div class="tab-content">
+      
+      <!-- SETTINGS TAB -->
+      @if (activeTab() === 'settings') {
+        <div class="settings-tab" role="tabpanel">
+          
+          <!-- Font Family -->
+          <div class="settings-section">
+            <span class="section-label">Font</span>
+            <div class="font-buttons">
+              @for (font of fonts; track font) {
+                <button
+                  class="font-btn"
+                  [class.selected]="settings.fontFamily === font"
+                  [style.font-family]="font"
+                  (click)="updateFontFamily(font)"
+                  [attr.aria-pressed]="settings.fontFamily === font"
+                  [attr.aria-label]="font + ' font'">
+                  {{ font }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Font Size -->
+          <div class="settings-section">
+            <div class="control-header">
+              <span class="section-label">Font Size</span>
+              <div class="control-buttons">
+                <button
+                  class="control-btn"
+                  (click)="decreaseFontSize()"
+                  [disabled]="settings.fontSize <= FONT_SIZE_MIN"
+                  aria-label="Decrease font size">
+                  −
+                </button>
+                <span class="control-value">{{ settings.fontSize }}px</span>
+                <button
+                  class="control-btn"
+                  (click)="increaseFontSize()"
+                  aria-label="Increase font size">
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Line Height -->
+          <div class="settings-section">
+            <div class="control-header">
+              <span class="section-label">Line Height</span>
+              <div class="control-buttons">
+                <button
+                  class="control-btn"
+                  (click)="decreaseLineHeight()"
+                  [disabled]="settings.lineHeight <= LINE_HEIGHT_MIN"
+                  aria-label="Decrease line height">
+                  −
+                </button>
+                <span class="control-value">{{ settings.lineHeight }}</span>
+                <button
+                  class="control-btn"
+                  (click)="increaseLineHeight()"
+                  aria-label="Increase line height">
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Theme -->
+          <div class="settings-section">
+            <span class="section-label">Theme</span>
+            <div class="theme-buttons" role="radiogroup" aria-label="Reader theme">
+              @for (opt of themeOptions; track opt.value) {
+                <button
+                  class="theme-btn theme-btn--{{ opt.value }}"
+                  [class.selected]="settings.theme === opt.value"
+                  (click)="updateTheme(opt.value)"
+                  [attr.aria-pressed]="settings.theme === opt.value"
+                  [attr.aria-label]="opt.label + ' theme'">
+                  {{ opt.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+        </div>
+      }
+
+      <!-- CHAPTERS TAB -->
+      @if (activeTab() === 'chapters') {
+        <div class="chapters-tab" role="tabpanel">
+          <nav class="chapters-list" role="navigation">
+            @if (chapters.length === 0) {
+              <p class="empty-message">No table of contents available</p>
+            }
+            @for (chapter of chapters; track chapter.id) {
+              <div class="chapter-group">
+                <button
+                  class="chapter-item"
+                  [class.current]="currentChapter === chapter.href"
+                  (click)="onChapterClick(chapter)"
+                  [attr.aria-current]="currentChapter === chapter.href ? 'true' : null">
+                  <span class="chapter-label">{{ chapter.label }}</span>
+                </button>
+                @if (chapter.subitems && chapter.subitems.length > 0) {
+                  <div class="chapter-subitems">
+                    @for (subchapter of chapter.subitems; track subchapter.id) {
+                      <button
+                        class="chapter-item chapter-item--sub"
+                        [class.current]="currentChapter === subchapter.href"
+                        (click)="onChapterClick(subchapter)"
+                        [attr.aria-current]="currentChapter === subchapter.href ? 'true' : null">
+                        <span class="chapter-label">{{ subchapter.label }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </nav>
+        </div>
+      }
+
+      <!-- BOOKMARKS TAB -->
+      @if (activeTab() === 'bookmarks') {
+        <div class="bookmarks-tab" role="tabpanel">
+          
+          <!-- Bookmarks list -->
+          <div class="bookmarks-section">
+            <h4 class="section-title">🔖 Your Bookmarks</h4>
+            <div class="bookmarks-list">
+              @if (bookmarks.length === 0) {
+                <p class="empty-message">No bookmarks yet. Tap 🏷️ to add one.</p>
+              }
+              @for (bm of bookmarks; track bm.id) {
+                <div class="bookmark-item" (click)="onBookmarkClick(bm)" role="button" tabindex="0">
+                  <span class="bookmark-label">{{ bm.label }}</span>
+                  <span class="bookmark-date">{{ bm.createdAt | date: 'short' }}</span>
+                  <button
+                    class="bookmark-remove"
+                    (click)="onBookmarkRemove(bm.id, $event)"
+                    aria-label="Remove bookmark"
+                    title="Remove">
+                    ✕
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Reading stats -->
+          @if (readingStats && readingStats.totalReadingTime > 0) {
+            <div class="reading-stats-section">
+              <h4 class="section-title">📊 Reading Stats</h4>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-value">{{ formatDuration(readingStats.totalReadingTime) }}</span>
+                  <span class="stat-label">Total time</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-value">{{ readingStats.sessions.length }}</span>
+                  <span class="stat-label">Sessions</span>
+                </div>
+                @if (todayReadingTime !== null) {
+                  <div class="stat-item">
+                    <span class="stat-value">{{ formatDuration(todayReadingTime) }}</span>
+                    <span class="stat-label">Today</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Reading goal -->
+          @if (readingGoal) {
+            <div class="reading-goal-section">
+              <h4 class="section-title">🎯 Reading Goal</h4>
+              <div class="goal-streak">
+                <span class="streak-flame">🔥</span>
+                <span class="streak-count">{{ readingGoal.currentStreak }} day streak</span>
+              </div>
+            </div>
+          }
+
+        </div>
+      }
+
+    </div>
+  </aside>
+}

@@ -6,7 +6,7 @@ import ePub from 'epubjs';
 import { IndexDBService } from '../../../core/services/indexdb.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import { ReadingProgressComponent } from './reading-progress/reading-progress.component';
-import { DraggableSettingsComponent, SettingsState } from './draggable-settings/draggable-settings.component';
+import { UnifiedSettingsPanelComponent, SettingsState } from './unified-settings-panel/unified-settings-panel.component';
 import {
   selectSelectedDocumentBookmarks,
   selectReadingProgress,
@@ -26,6 +26,7 @@ import {
   LINE_HEIGHT_MIN,
   LINE_HEIGHT_STEP,
   READER_FONTS,
+  TocItem,
 } from '../../../core/models/document.model';
 
 const STORAGE_KEY = 'epub-reader-settings';
@@ -33,7 +34,7 @@ const STORAGE_KEY = 'epub-reader-settings';
 @Component({
   selector: 'app-epub-reader',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReadingProgressComponent, DraggableSettingsComponent],
+  imports: [CommonModule, FormsModule, ReadingProgressComponent, UnifiedSettingsPanelComponent],
   templateUrl: './epub-reader.component.html',
   styleUrl: './epub-reader.component.css'
 })
@@ -58,8 +59,14 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   readingGoal$ = this.store.select(selectReadingGoal);
   todayReadingTime$ = this.store.select(selectTodayReadingTime);
 
-  bookmarksOpen = signal<boolean>(false);
   isCurrentLocationBookmarked = signal<boolean>(false);
+
+  // --- Unified panel state ---
+  panelOpen = signal<boolean>(false);
+
+  // --- Chapters/TOC ---
+  chapters = signal<TocItem[]>([]);
+  currentChapterHref = signal<string | null>(null);
 
   // --- Reading session tracking ---
   private sessionStartTime: Date | null = null;
@@ -72,7 +79,6 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   lineHeight = signal<number>(DEFAULT_READER_SETTINGS.lineHeight);
   fontFamily = signal<string>(DEFAULT_READER_SETTINGS.fontFamily);
   theme = signal<ThemeOption>(DEFAULT_READER_SETTINGS.theme);
-  settingsOpen = signal<boolean>(false);
 
   // --- Control constraints ---
   readonly FONT_SIZE_MIN = FONT_SIZE_MIN;
@@ -116,6 +122,9 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
           spread: 'none',
           allowScriptedContent: true,
         });
+
+        // Load table of contents
+        await this.loadTableOfContents();
 
         // Register all themes before displaying so they are ready to use
         this.registerThemes();
@@ -165,11 +174,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
-  // Settings panel toggle
+  // Unified panel toggle
   // ---------------------------------------------------------------------------
 
-  toggleSettings(): void {
-    this.settingsOpen.update(open => !open);
+  togglePanel(): void {
+    this.panelOpen.update(open => !open);
   }
 
   // ---------------------------------------------------------------------------
@@ -305,8 +314,33 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   // Bookmarks
   // ---------------------------------------------------------------------------
 
-  toggleBookmarksPanel(): void {
-    this.bookmarksOpen.update((open) => !open);
+  private async loadTableOfContents(): Promise<void> {
+    if (!this.book) return;
+    try {
+      const navigation = await this.book.loaded.navigation;
+      const tocItems: TocItem[] = navigation.toc.map((item: any) => ({
+        id: item.id || crypto.randomUUID(),
+        label: item.label,
+        href: item.href,
+        subitems: item.subitems?.map((sub: any) => ({
+          id: sub.id || crypto.randomUUID(),
+          label: sub.label,
+          href: sub.href,
+          parent: item.id,
+        })),
+      }));
+      this.chapters.set(tocItems);
+    } catch (error) {
+      console.warn('Could not load table of contents:', error);
+      this.chapters.set([]);
+    }
+  }
+
+  onChapterSelect(chapter: TocItem): void {
+    if (this.rendition) {
+      this.rendition.display(chapter.href);
+      // Panel stays open for easier navigation
+    }
   }
 
   toggleBookmarkAtCurrentLocation(): void {
@@ -343,12 +377,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   jumpToBookmark(bookmark: Bookmark): void {
     if (this.rendition) {
       this.rendition.display(bookmark.location);
-      this.bookmarksOpen.set(false);
+      // Panel stays open for easier navigation
     }
   }
 
-  removeBookmark(bookmarkId: string, event: Event): void {
-    event.stopPropagation();
+  removeBookmark(bookmarkId: string): void {
     this.store.dispatch(
       DocumentsActions.removeBookmark({ id: this.documentId, bookmarkId })
     );
@@ -406,6 +439,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.currentCfi = location.start.cfi ?? '';
     if (location.start.displayed.page) {
       this.currentPageNumber = location.start.displayed.page;
+    }
+
+    // Update current chapter based on href
+    if (location.start.href) {
+      this.currentChapterHref.set(location.start.href);
     }
 
     // Check if current location is bookmarked

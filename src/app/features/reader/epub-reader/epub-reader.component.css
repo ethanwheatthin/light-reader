@@ -99,10 +99,9 @@
 }
 
 /* ========================================================================
-   Settings toggle (gear icon)
+   Panel toggle button (gear icon)
    ======================================================================== */
-.settings-toggle,
-.bookmarks-list-toggle {
+.panel-toggle {
   position: absolute;
   right: 1rem;
   top: 50%;
@@ -120,25 +119,18 @@
   border: 1px solid rgba(255, 255, 255, 0.7) !important;
 }
 
-.bookmarks-list-toggle {
-  right: 3.5rem;
-}
-
-.settings-toggle:hover,
-.bookmarks-list-toggle:hover {
+.panel-toggle:hover {
   background: rgba(255, 255, 255, 0.9) !important;
   transform: translateY(-52%) !important;
   box-shadow: var(--shadow-md) !important;
 }
 
-.epub-container[data-theme='dark'] .settings-toggle,
-.epub-container[data-theme='dark'] .bookmarks-list-toggle {
+.epub-container[data-theme='dark'] .panel-toggle {
   background: rgba(42, 42, 42, 0.6) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.epub-container[data-theme='dark'] .settings-toggle:hover,
-.epub-container[data-theme='dark'] .bookmarks-list-toggle:hover {
+.epub-container[data-theme='dark'] .panel-toggle:hover {
   background: rgba(42, 42, 42, 0.9) !important;
 }
 
@@ -218,208 +210,6 @@
 }
 
 /* ========================================================================
-   Bookmarks Panel
-   ======================================================================== */
-.bookmarks-panel {
-  position: absolute;
-  top: 80px;
-  right: 20px;
-  width: 340px;
-  max-width: 90vw;
-  max-height: calc(100% - 100px);
-  z-index: 20;
-  background: var(--color-glass-white);
-  backdrop-filter: blur(var(--blur-heavy));
-  -webkit-backdrop-filter: blur(var(--blur-heavy));
-  color: var(--color-text-primary);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-glass-border);
-  box-shadow: var(--shadow-2xl);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: panelSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes panelSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-16px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.epub-container[data-theme='dark'] .bookmarks-panel {
-  background: rgba(42, 42, 42, 0.85);
-  color: #e0e0e0;
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.epub-container[data-theme='sepia'] .bookmarks-panel {
-  background: rgba(244, 241, 234, 0.85);
-  color: #5f4b32;
-  border-color: rgba(95, 75, 50, 0.2);
-}
-
-.bookmarks-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e5e5;
-  flex-shrink: 0;
-}
-
-.epub-container[data-theme='dark'] .bookmarks-header {
-  border-bottom-color: #444;
-}
-
-.bookmarks-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.bookmarks-list {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  flex: 1;
-  padding: 0.5rem 0;
-}
-
-.bookmarks-empty {
-  padding: 1.5rem 1rem;
-  text-align: center;
-  opacity: 0.55;
-  font-size: 0.9rem;
-}
-
-.bookmark-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.bookmark-item:hover {
-  background: rgba(0, 123, 255, 0.06);
-}
-
-.epub-container[data-theme='dark'] .bookmark-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.bookmark-label {
-  flex: 1;
-  font-size: 0.88rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.bookmark-date {
-  font-size: 0.72rem;
-  opacity: 0.5;
-  white-space: nowrap;
-}
-
-.bookmark-remove {
-  background: transparent;
-  border: none;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: inherit;
-  opacity: 0.4;
-  padding: 0.15rem 0.35rem;
-  border-radius: 4px;
-  line-height: 1;
-  transition: opacity 0.12s, background 0.12s;
-}
-
-.bookmark-remove:hover {
-  opacity: 1;
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
-}
-
-/* ========================================================================
-   Reading Stats Summary (inside bookmarks panel)
-   ======================================================================== */
-.reading-stats-summary,
-.reading-goal-summary {
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #e5e5e5;
-}
-
-.epub-container[data-theme='dark'] .reading-stats-summary,
-.epub-container[data-theme='dark'] .reading-goal-summary {
-  border-top-color: #444;
-}
-
-.reading-stats-summary h4,
-.reading-goal-summary h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  opacity: 0.7;
-}
-
-.stats-grid {
-  display: flex;
-  gap: 1rem;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #007bff;
-}
-
-.epub-container[data-theme='dark'] .stat-value {
-  color: #5b9cff;
-}
-
-.epub-container[data-theme='sepia'] .stat-value {
-  color: #8b6914;
-}
-
-.stat-label {
-  font-size: 0.7rem;
-  opacity: 0.55;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.goal-streak {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.95rem;
-}
-
-.streak-flame {
-  font-size: 1.2rem;
-}
-
-.streak-count {
-  font-weight: 600;
-}
-
-/* ========================================================================
    EPUB viewer — smooth transitions for setting changes
    ======================================================================== */
 .epub-viewer {
@@ -445,5 +235,30 @@
   .page-info {
     min-width: 100px;
     font-size: 0.9rem;
+  }
+
+  /* Ensure touch targets are at least 44px for mobile */
+  .panel-toggle,
+  .bookmark-toggle {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0.6rem !important;
+    font-size: 1.4rem !important;
+    /* Prevent tap highlight on mobile */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .panel-toggle {
+    right: 0.5rem;
+  }
+
+  .bookmark-toggle {
+    left: 0.5rem;
+  }
+
+  /* Make ETA badge smaller on mobile */
+  .eta-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
   }
 }

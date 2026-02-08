@@ -1,0 +1,601 @@
+/* Backdrop overlay */
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Transparent backdrop on mobile to see book changes */
+@media (max-width: 768px) {
+  .backdrop {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Base panel styles */
+.unified-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  width: min(90vw, 400px);
+  min-height: 590px;
+  max-height: 590px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.unified-panel.positioned {
+  transform: none;
+  animation: none;
+}
+
+/* Theme variables */
+.unified-panel[data-theme='light'] {
+  --panel-bg: #ffffff;
+  --panel-text: #000000;
+  --panel-border: #e0e0e0;
+  --panel-hover: #f5f5f5;
+  --panel-active: #e8e8e8;
+  --tab-active-bg: #f0f0f0;
+  --button-bg: #f5f5f5;
+  --button-hover: #e0e0e0;
+  --button-active: #d0d0d0;
+}
+
+.unified-panel[data-theme='dark'] {
+  --panel-bg: #1a1a1a;
+  --panel-text: #e0e0e0;
+  --panel-border: #333333;
+  --panel-hover: #2a2a2a;
+  --panel-active: #333333;
+  --tab-active-bg: #2a2a2a;
+  --button-bg: #2a2a2a;
+  --button-hover: #333333;
+  --button-active: #444444;
+}
+
+.unified-panel[data-theme='sepia'] {
+  --panel-bg: #f4f1ea;
+  --panel-text: #5f4b32;
+  --panel-border: #d9d4c7;
+  --panel-hover: #ebe8de;
+  --panel-active: #e0ddd0;
+  --tab-active-bg: #ebe8de;
+  --button-bg: #ebe8de;
+  --button-hover: #e0ddd0;
+  --button-active: #d5d2c5;
+}
+
+/* Header with drag handle */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--panel-active);
+  border-bottom: 1px solid var(--panel-border);
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.drag-grip {
+  font-size: 1.2rem;
+  opacity: 0.5;
+}
+
+.panel-header h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--panel-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+  opacity: 1;
+}
+
+/* Tab navigation */
+.tab-nav {
+  display: flex;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.tab-button {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  background: none;
+  border: none;
+  color: var(--panel-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.tab-button:hover {
+  opacity: 0.8;
+  background: var(--panel-hover);
+}
+
+.tab-button.active {
+  opacity: 1;
+  background: var(--tab-active-bg);
+  border-bottom-color: currentColor;
+  font-weight: 600;
+}
+
+/* Tab content container */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+}
+
+/* SETTINGS TAB STYLES */
+.settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.section-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.font-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.font-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 0.5rem;
+  background: var(--button-bg);
+  border: 2px solid transparent;
+  color: var(--panel-text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.font-btn:hover {
+  background: var(--button-hover);
+}
+
+.font-btn.selected {
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+.control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.control-btn {
+  width: 2rem;
+  height: 2rem;
+  background: var(--button-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--panel-text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: var(--button-hover);
+}
+
+.control-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.control-value {
+  min-width: 4rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.theme-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background: var(--button-bg);
+  border: 2px solid transparent;
+  color: var(--panel-text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.theme-btn:hover {
+  background: var(--button-hover);
+}
+
+.theme-btn.selected {
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+.theme-btn--light {
+  background: #ffffff;
+  color: #000000;
+}
+
+.theme-btn--dark {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.theme-btn--sepia {
+  background: #f4f1ea;
+  color: #5f4b32;
+}
+
+/* CHAPTERS TAB STYLES */
+.chapters-tab {
+  padding: 0;
+}
+
+.chapters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chapter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.chapter-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: var(--panel-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.chapter-item:hover {
+  background: var(--panel-hover);
+}
+
+.chapter-item.current {
+  background: var(--panel-active);
+  font-weight: 600;
+}
+
+.chapter-item--sub {
+  padding-left: 2rem;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.chapter-subitems {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* BOOKMARKS TAB STYLES */
+.bookmarks-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0;
+}
+
+.section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bookmarks-section,
+.reading-stats-section,
+.reading-goal-section {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.bookmarks-section:last-child,
+.reading-stats-section:last-child,
+.reading-goal-section:last-child {
+  border-bottom: none;
+}
+
+.bookmarks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--button-bg);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.bookmark-item:hover {
+  background: var(--button-hover);
+}
+
+.bookmark-label {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.bookmark-date {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.bookmark-remove {
+  background: none;
+  border: none;
+  color: var(--panel-text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.bookmark-remove:hover {
+  opacity: 1;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--button-bg);
+  border-radius: 6px;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.goal-streak {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--button-bg);
+  border-radius: 6px;
+}
+
+.streak-flame {
+  font-size: 1.5rem;
+}
+
+.streak-count {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.empty-message {
+  padding: 1rem;
+  text-align: center;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .unified-panel {
+    width: 100vw;
+    max-width: 100vw;
+    height: auto;
+    max-height: 65vh;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    border-radius: 16px 16px 0 0;
+    animation: slideUpMobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  @keyframes slideUpMobile {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .unified-panel.positioned {
+    /* Keep mobile panel at bottom even when dragged */
+    top: auto !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+  }
+
+  .panel-header {
+    padding: 1rem;
+    cursor: default;
+    position: relative;
+  }
+
+  .panel-header::before {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: var(--panel-border);
+    border-radius: 2px;
+    opacity: 0.5;
+  }
+
+  .panel-header h3 {
+    margin-top: 0.5rem;
+  }
+
+  .drag-grip {
+    display: none;
+  }
+
+  .tab-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--panel-bg);
+  }
+
+  .tab-button {
+    padding: 1rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .tab-content {
+    padding: 1.25rem;
+    max-height: calc(65vh - 140px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Larger touch targets on mobile */
+  .font-btn,
+  .theme-btn,
+  .control-btn {
+    min-height: 44px;
+  }
+
+  .chapter-item {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+
+  .bookmark-item {
+    padding: 1rem;
+  }
+
+  .bookmark-label {
+    font-size: 0.95rem;
+  }
+
+  /* Add safe area padding for iOS devices */
+  .unified-panel {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tab-content {
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+}
