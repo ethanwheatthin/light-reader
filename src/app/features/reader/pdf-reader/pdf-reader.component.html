@@ -1,0 +1,18 @@
+<div class="pdf-container">
+  <div class="reader-controls">
+    <button (click)="prevPage()" [disabled]="currentPage <= 1">Previous</button>
+    <span>Page {{ currentPage }} / {{ totalPages }}</span>
+    <button (click)="nextPage()" [disabled]="currentPage >= totalPages">Next</button>
+    <select [(ngModel)]="scale" (change)="onScaleChange()" class="scale-select">
+      <option [value]="0.5">50%</option>
+      <option [value]="0.75">75%</option>
+      <option [value]="1">100%</option>
+      <option [value]="1.25">125%</option>
+      <option [value]="1.5">150%</option>
+      <option [value]="2">200%</option>
+    </select>
+  </div>
+  <div class="canvas-wrapper">
+    <canvas #pdfCanvas></canvas>
+  </div>
+</div>

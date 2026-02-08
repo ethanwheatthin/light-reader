@@ -1,0 +1,35 @@
+<div class="library-container">
+  <h1>My Library</h1>
+  <app-upload></app-upload>
+  
+  @if (loading$ | async) {
+    <p>Loading...</p>
+  }
+  
+  <div class="library-grid">
+    @for (doc of documents$ | async; track doc.id) {
+      <div class="document-card">
+        <div class="document-icon">
+          {{ doc.type === 'epub' ? '📖' : '📄' }}
+        </div>
+        <h3>{{ doc.title }}</h3>
+        <p class="doc-type">{{ doc.type | uppercase }}</p>
+        <p class="doc-size">{{ formatFileSize(doc.fileSize) }}</p>
+        @if (doc.lastOpened) {
+          <p class="doc-progress">
+            Last opened: {{ formatDate(doc.lastOpened) }}
+            @if (doc.currentPage && doc.totalPages) {
+              <br>Page {{ doc.currentPage }} / {{ doc.totalPages }}
+            }
+          </p>
+        }
+        <div class="card-actions">
+          <button (click)="openDocument(doc.id)" class="btn-primary">Open</button>
+          <button (click)="deleteDocument(doc.id)" class="btn-danger">Delete</button>
+        </div>
+      </div>
+    } @empty {
+      <p class="empty-state">No documents yet. Upload one to get started!</p>
+    }
+  </div>
+</div>

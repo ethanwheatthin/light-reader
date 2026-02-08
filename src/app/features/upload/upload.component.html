@@ -1,0 +1,12 @@
+<div class="upload-container">
+  <input
+    type="file"
+    accept=".epub,.pdf"
+    (change)="onFileSelected($event)"
+    #fileInput
+    style="display: none"
+  />
+  <button (click)="fileInput.click()" class="upload-btn">
+    Upload Document
+  </button>
+</div>

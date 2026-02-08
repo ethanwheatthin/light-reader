@@ -9,80 +9,8 @@ import { DocumentsActions } from '../../../store/documents/documents.actions';
   selector: 'app-epub-reader',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="epub-container">
-      <div class="reader-controls">
-        <button (click)="prevPage()" [disabled]="!canGoPrev">Previous</button>
-        <span class="page-info">{{ currentLocation }}</span>
-        <button (click)="nextPage()" [disabled]="!canGoNext">Next</button>
-      </div>
-      <div #viewer class="epub-viewer"></div>
-    </div>
-  `,
-  styles: [`
-    .epub-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    
-    .reader-controls {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: #f8f9fa;
-      border-bottom: 1px solid #ddd;
-    }
-    
-    .reader-controls button {
-      padding: 0.5rem 1.5rem;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    
-    .reader-controls button:hover:not(:disabled) {
-      background: #0056b3;
-    }
-    
-    .reader-controls button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    
-    .page-info {
-      min-width: 200px;
-      text-align: center;
-    }
-    
-    .epub-viewer {
-      flex: 1;
-      overflow: hidden;
-      background: white;
-    }
-    
-    @media (max-width: 768px) {
-      .reader-controls {
-        padding: 0.5rem;
-        gap: 0.5rem;
-      }
-      
-      .reader-controls button {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-      }
-      
-      .page-info {
-        min-width: 100px;
-        font-size: 0.9rem;
-      }
-    }
-  `]
+  templateUrl: './epub-reader.component.html',
+  styleUrl: './epub-reader.component.css'
 })
 export class EpubReaderComponent implements OnInit, OnDestroy {
   @Input() documentId!: string;

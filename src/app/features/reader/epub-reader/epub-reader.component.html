@@ -1,0 +1,8 @@
+<div class="epub-container">
+  <div class="reader-controls">
+    <button (click)="prevPage()" [disabled]="!canGoPrev">Previous</button>
+    <span class="page-info">{{ currentLocation }}</span>
+    <button (click)="nextPage()" [disabled]="!canGoNext">Next</button>
+  </div>
+  <div #viewer class="epub-viewer"></div>
+</div>

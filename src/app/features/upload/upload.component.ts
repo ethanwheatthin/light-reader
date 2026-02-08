@@ -7,39 +7,8 @@ import { DocumentsActions } from '../../store/documents/documents.actions';
   selector: 'app-upload',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="upload-container">
-      <input
-        type="file"
-        accept=".epub,.pdf"
-        (change)="onFileSelected($event)"
-        #fileInput
-        style="display: none"
-      />
-      <button (click)="fileInput.click()" class="upload-btn">
-        Upload Document
-      </button>
-    </div>
-  `,
-  styles: [`
-    .upload-container {
-      padding: 1rem;
-    }
-    
-    .upload-btn {
-      padding: 0.75rem 1.5rem;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    
-    .upload-btn:hover {
-      background-color: #0056b3;
-    }
-  `]
+  templateUrl: './upload.component.html',
+  styleUrl: './upload.component.css'
 })
 export class UploadComponent {
   private store = inject(Store);

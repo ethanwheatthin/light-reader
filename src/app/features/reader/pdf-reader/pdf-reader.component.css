@@ -1,0 +1,81 @@
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pdf-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.reader-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.reader-controls button {
+  padding: 0.5rem 1.5rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reader-controls button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.reader-controls button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.scale-select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  overflow: auto;
+  background: #525659;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  min-height: 0;
+}
+
+canvas {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .reader-controls {
+    padding: 0.5rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .reader-controls button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .canvas-wrapper {
+    padding: 0.5rem;
+  }
+}

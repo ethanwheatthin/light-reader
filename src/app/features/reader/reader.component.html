@@ -1,0 +1,18 @@
+<div class="reader-container">
+  <div class="reader-header">
+    <button (click)="goBack()" class="back-btn">← Back to Library</button>
+    @if (document$ | async; as doc) {
+      <h2>{{ doc.title }}</h2>
+    }
+  </div>
+  
+  @if (document$ | async; as doc) {
+    @if (doc.type === 'epub') {
+      <app-epub-reader [documentId]="doc.id"></app-epub-reader>
+    } @else {
+      <app-pdf-reader [documentId]="doc.id"></app-pdf-reader>
+    }
+  } @else {
+    <p>Loading document...</p>
+  }
+</div>
