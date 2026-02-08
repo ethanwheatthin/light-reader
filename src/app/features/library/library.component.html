@@ -110,7 +110,7 @@
         @if (viewMode === 'grid') {
           <div class="books-grid">
             @for (doc of documents; track doc.id) {
-              <div class="book-card" (click)="openDocument(doc.id)">
+              <div class="book-card" [class.menu-open]="openMenuId === doc.id" (click)="openDocument(doc.id)">
                 <div class="book-cover-wrapper">
                   @if (getCoverImage(doc)) {
                     <img class="book-cover-img" [src]="getCoverImage(doc)" [alt]="doc.title" />

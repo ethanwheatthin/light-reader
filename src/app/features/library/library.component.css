@@ -440,7 +440,7 @@
   transition: transform var(--transition-fast);
 }
 
-.book-card:hover {
+.book-card:hover:not(.menu-open) {
   transform: translateY(-4px);
 }
 
@@ -455,7 +455,7 @@
   background: #f1f3f4;
 }
 
-.book-card:hover .book-cover-wrapper {
+.book-card:hover:not(.menu-open) .book-cover-wrapper {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
