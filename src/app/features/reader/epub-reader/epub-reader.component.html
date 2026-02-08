@@ -79,6 +79,16 @@
     (close)="toggleSettings()">
   </app-draggable-settings>
 
+  <!-- Chapters panel -->
+  <app-chapters-panel
+    [isOpen]="chaptersOpen()"
+    [chapters]="chapters()"
+    [theme]="theme()"
+    [currentChapter]="currentChapterHref()"
+    (chapterSelect)="onChapterSelect($event)"
+    (close)="toggleChaptersPanel()">
+  </app-chapters-panel>
+
   <div #viewer class="epub-viewer"></div>
   <!-- Top bar: navigation + settings toggle -->
   <div class="reader-controls">
@@ -106,6 +116,15 @@
       aria-label="Bookmarks"
       title="Bookmarks">
       📑
+    </button>
+
+    <button
+      class="chapters-toggle"
+      (click)="toggleChaptersPanel()"
+      [attr.aria-expanded]="chaptersOpen()"
+      aria-label="Chapters"
+      title="Chapters">
+      📖
     </button>
 
     <button

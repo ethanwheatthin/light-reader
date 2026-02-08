@@ -1,0 +1,37 @@
+@if (isOpen) {
+  <aside class="chapters-panel" role="dialog" aria-label="Chapters" [attr.data-theme]="theme">
+    <header class="chapters-header">
+      <h3>📖 Chapters</h3>
+      <button class="close-btn" (click)="closePanel()" aria-label="Close chapters">✕</button>
+    </header>
+    <nav class="chapters-list" role="navigation">
+      @if (chapters.length === 0) {
+        <p class="chapters-empty">No table of contents available</p>
+      }
+      @for (chapter of chapters; track chapter.id) {
+        <div class="chapter-group">
+          <button
+            class="chapter-item"
+            [class.current]="currentChapter === chapter.href"
+            (click)="onChapterClick(chapter)"
+            [attr.aria-current]="currentChapter === chapter.href ? 'true' : null">
+            <span class="chapter-label">{{ chapter.label }}</span>
+          </button>
+          @if (chapter.subitems && chapter.subitems.length > 0) {
+            <div class="chapter-subitems">
+              @for (subchapter of chapter.subitems; track subchapter.id) {
+                <button
+                  class="chapter-item chapter-item--sub"
+                  [class.current]="currentChapter === subchapter.href"
+                  (click)="onChapterClick(subchapter)"
+                  [attr.aria-current]="currentChapter === subchapter.href ? 'true' : null">
+                  <span class="chapter-label">{{ subchapter.label }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </nav>
+  </aside>
+}

@@ -102,7 +102,8 @@
    Settings toggle (gear icon)
    ======================================================================== */
 .settings-toggle,
-.bookmarks-list-toggle {
+.bookmarks-list-toggle,
+.chapters-toggle {
   position: absolute;
   right: 1rem;
   top: 50%;
@@ -124,21 +125,28 @@
   right: 3.5rem;
 }
 
+.chapters-toggle {
+  right: 6rem;
+}
+
 .settings-toggle:hover,
-.bookmarks-list-toggle:hover {
+.bookmarks-list-toggle:hover,
+.chapters-toggle:hover {
   background: rgba(255, 255, 255, 0.9) !important;
   transform: translateY(-52%) !important;
   box-shadow: var(--shadow-md) !important;
 }
 
 .epub-container[data-theme='dark'] .settings-toggle,
-.epub-container[data-theme='dark'] .bookmarks-list-toggle {
+.epub-container[data-theme='dark'] .bookmarks-list-toggle,
+.epub-container[data-theme='dark'] .chapters-toggle {
   background: rgba(42, 42, 42, 0.6) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .epub-container[data-theme='dark'] .settings-toggle:hover,
-.epub-container[data-theme='dark'] .bookmarks-list-toggle:hover {
+.epub-container[data-theme='dark'] .bookmarks-list-toggle:hover,
+.epub-container[data-theme='dark'] .chapters-toggle:hover {
   background: rgba(42, 42, 42, 0.9) !important;
 }
 

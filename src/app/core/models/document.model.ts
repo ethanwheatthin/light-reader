@@ -9,6 +9,14 @@ export interface Bookmark {
   note?: string;
 }
 
+export interface TocItem {
+  id: string;
+  label: string;
+  href: string;
+  subitems?: TocItem[];
+  parent?: string;
+}
+
 export interface ReadingSession {
   startedAt: Date;
   endedAt: Date;
