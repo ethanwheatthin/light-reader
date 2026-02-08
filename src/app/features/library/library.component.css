@@ -1,178 +1,282 @@
+/* ========================================================================
+   Library Container - Glass & Gradient Theme
+   ======================================================================== */
 .library-container {
-  padding: 2rem;
-  max-width: 1200px;
+  padding: 3rem 2rem;
+  max-width: 1400px;
   margin: 0 auto;
+  min-height: 100vh;
 }
 
 h1 {
-  margin-bottom: 1.5rem;
-}
-
-.library-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
-
-.document-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 1.5rem;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.document-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.document-icon {
-  font-size: 3rem;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.document-card h3 {
-  margin: 0.5rem 0;
-  font-size: 1.1rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.doc-type {
-  color: #666;
-  font-weight: bold;
-  margin: 0.25rem 0;
-}
-
-.doc-size, .doc-progress {
-  color: #888;
-  font-size: 0.9rem;
-  margin: 0.25rem 0;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ========================================================================
-   Card Progress Bar
+   Library Grid - Responsive masonry-style layout
+   ======================================================================== */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+/* ========================================================================
+   Document Card - Glassmorphism with hover lift
+   ======================================================================== */
+.document-card {
+  position: relative;
+  background: var(--color-glass-white);
+  backdrop-filter: blur(var(--blur-heavy));
+  -webkit-backdrop-filter: blur(var(--blur-heavy));
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.document-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.document-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-2xl);
+}
+
+.document-card:hover::before {
+  opacity: 1;
+}
+
+/* ========================================================================
+   Document Icon - Large centered with shadow
+   ======================================================================== */
+.document-icon {
+  font-size: 4rem;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  filter: drop-shadow(var(--shadow-md));
+  transition: transform var(--transition-base);
+}
+
+.document-card:hover .document-icon {
+  transform: scale(1.1) translateY(-4px);
+}
+
+/* ========================================================================
+   Document Info
+   ======================================================================== */
+.document-card h3 {
+  margin: 0.75rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+}
+
+.doc-type {
+  color: var(--color-text-tertiary);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0.5rem 0;
+}
+
+.doc-size, .doc-progress {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin: 0.35rem 0;
+}
+
+/* ========================================================================
+   Card Progress Bar - Gradient style
    ======================================================================== */
 .card-progress-bar {
-  height: 4px;
-  background: #e9ecef;
-  border-radius: 2px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-pill);
   overflow: hidden;
-  margin: 0.5rem 0 0.25rem;
+  margin: 0.75rem 0 0.4rem;
 }
 
 .card-progress-fill {
   height: 100%;
-  background: #007bff;
-  border-radius: 2px;
-  transition: width 0.3s ease;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-pill);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
 }
 
 .doc-meta {
-  color: #888;
-  font-size: 0.9rem;
-  margin: 0.25rem 0;
+  color: var(--color-text-tertiary);
+  font-size: 0.85rem;
+  margin: 0.35rem 0;
 }
 
 /* ========================================================================
-   Card Badges
+   Card Badges - Glass pills with icons
    ======================================================================== */
 .card-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 0.15rem 0.45rem;
-  border-radius: 10px;
-  background: #f0f0f0;
-  color: #555;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-2xl);
+  backdrop-filter: blur(var(--blur-light));
+  -webkit-backdrop-filter: blur(var(--blur-light));
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
 .bookmark-badge {
-  background: rgba(0, 123, 255, 0.1);
-  color: #007bff;
+  background: rgba(79, 172, 254, 0.15);
+  color: var(--color-primary-start);
+  border-color: rgba(79, 172, 254, 0.3);
 }
 
 .time-badge {
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .streak-badge {
-  background: rgba(255, 153, 0, 0.12);
-  color: #e67e00;
+  background: rgba(255, 153, 0, 0.15);
+  color: #ff9900;
+  border-color: rgba(255, 153, 0, 0.3);
 }
 
+/* ========================================================================
+   Card Actions - Hidden until hover with gradient buttons
+   ======================================================================== */
 .card-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all var(--transition-base);
 }
 
+.document-card:hover .card-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========================================================================
+   Buttons - Gradient style
+   ======================================================================== */
 button {
   flex: 1;
-  padding: 0.5rem;
+  padding: 0.7rem 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background: var(--gradient-primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #0056b3;
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-2px);
 }
 
 .btn-resume {
-  background-color: #28a745;
+  background: var(--gradient-success);
   color: white;
 }
 
 .btn-resume:hover {
-  background-color: #218838;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+  transform: translateY(-2px);
 }
 
 .btn-danger {
-  background-color: #dc3545;
+  background: var(--gradient-danger);
   color: white;
 }
 
 .btn-danger:hover {
-  background-color: #c82333;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.25);
+  transform: translateY(-2px);
 }
 
+/* ========================================================================
+   Empty State - Centered with glass card
+   ======================================================================== */
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
-  color: #888;
-  padding: 3rem;
-  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  padding: 4rem 2rem;
+  font-size: 1.2rem;
+  background: var(--color-glass-white);
+  backdrop-filter: blur(var(--blur-medium));
+  -webkit-backdrop-filter: blur(var(--blur-medium));
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-glass-border);
+  box-shadow: var(--shadow-md);
 }
 
+/* ========================================================================
+   Responsive Design
+   ======================================================================== */
 @media (max-width: 768px) {
   .library-container {
-    padding: 1rem;
+    padding: 2rem 1rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
   }
   
   .library-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .card-actions {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
