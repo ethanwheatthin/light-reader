@@ -4,43 +4,7 @@
     <div class="progress-bar-fill" [style.width.%]="readingProgress$ | async"></div>
   </div>
 
-  <!-- Top bar: navigation + settings toggle -->
-  <div class="reader-controls">
-    <button
-      class="bookmark-toggle"
-      (click)="toggleBookmarkAtCurrentLocation()"
-      [class.bookmarked]="isCurrentLocationBookmarked()"
-      [attr.aria-label]="isCurrentLocationBookmarked() ? 'Remove bookmark' : 'Add bookmark'"
-      title="Toggle bookmark">
-      {{ isCurrentLocationBookmarked() ? '🔖' : '🏷️' }}
-    </button>
-
-    <button (click)="prevPage()" [disabled]="!canGoPrev" aria-label="Previous page">Previous</button>
-    <span class="page-info">{{ currentLocation }}</span>
-    <button (click)="nextPage()" [disabled]="!canGoNext" aria-label="Next page">Next</button>
-
-    @if (estimatedTimeRemaining$ | async; as eta) {
-      <span class="eta-badge" title="Estimated time remaining">{{ eta }}</span>
-    }
-
-    <button
-      class="bookmarks-list-toggle"
-      (click)="toggleBookmarksPanel()"
-      [attr.aria-expanded]="bookmarksOpen()"
-      aria-label="Bookmarks"
-      title="Bookmarks">
-      📑
-    </button>
-
-    <button
-      class="settings-toggle"
-      (click)="toggleSettings()"
-      [attr.aria-expanded]="settingsOpen()"
-      aria-label="Reader settings"
-      title="Reader settings">
-      ⚙
-    </button>
-  </div>
+  
 
   <!-- Bookmarks panel -->
   @if (bookmarksOpen()) {
@@ -218,4 +182,41 @@
   }
 
   <div #viewer class="epub-viewer"></div>
+  <!-- Top bar: navigation + settings toggle -->
+  <div class="reader-controls">
+    <button
+      class="bookmark-toggle"
+      (click)="toggleBookmarkAtCurrentLocation()"
+      [class.bookmarked]="isCurrentLocationBookmarked()"
+      [attr.aria-label]="isCurrentLocationBookmarked() ? 'Remove bookmark' : 'Add bookmark'"
+      title="Toggle bookmark">
+      {{ isCurrentLocationBookmarked() ? '🔖' : '🏷️' }}
+    </button>
+
+    <button (click)="prevPage()" [disabled]="!canGoPrev" aria-label="Previous page">Previous</button>
+    <span class="page-info">{{ currentLocation }}</span>
+    <button (click)="nextPage()" [disabled]="!canGoNext" aria-label="Next page">Next</button>
+
+    @if (estimatedTimeRemaining$ | async; as eta) {
+      <span class="eta-badge" title="Estimated time remaining">{{ eta }}</span>
+    }
+
+    <button
+      class="bookmarks-list-toggle"
+      (click)="toggleBookmarksPanel()"
+      [attr.aria-expanded]="bookmarksOpen()"
+      aria-label="Bookmarks"
+      title="Bookmarks">
+      📑
+    </button>
+
+    <button
+      class="settings-toggle"
+      (click)="toggleSettings()"
+      [attr.aria-expanded]="settingsOpen()"
+      aria-label="Reader settings"
+      title="Reader settings">
+      ⚙
+    </button>
+  </div>
 </div>
