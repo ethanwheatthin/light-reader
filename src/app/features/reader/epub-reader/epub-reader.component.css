@@ -250,7 +250,7 @@
   flex: 1;
   min-height: 0;
   transition: padding 0.3s ease;
-  width: 100%;
+  width: 50%;
   align-self: center;
 }
 
