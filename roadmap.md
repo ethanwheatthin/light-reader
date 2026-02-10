@@ -11,7 +11,6 @@
 - Search within annotations
 - Share specific highlights with deeplinks
 
-
 ### Text-to-Speech (TTS)
 - Read aloud functionality with voice selection
 - Playback speed control (0.5x - 2x)
@@ -43,12 +42,6 @@
 - Custom gesture mappings
 
 ## Phase 3: Organization & Library Management
-
-### Collections & Smart Folders
-- Auto-organize by genre, author, read/unread
-- Tags and labels system
-- Favorites/starred books
-- Reading lists (To Read, Currently Reading, Finished)
 
 ### Metadata Management
 - Auto-fetch book metadata (title, author, cover, description)
@@ -147,7 +140,6 @@
 - Screen reader optimization
 - High contrast modes
 - Customizable color palettes
-- Font choices (including OpenDyslexic)
 - Adjustable letter spacing
 - Word highlighting while reading
 - Bionic reading mode

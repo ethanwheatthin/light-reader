@@ -10,6 +10,7 @@ import {
   Bookmark, 
   ReadingGoal, 
   ReadingStats,
+  CustomColorPalette,
   READER_FONTS, 
   FONT_SIZE_MIN, 
   FONT_SIZE_STEP, 
@@ -17,7 +18,11 @@ import {
   LINE_HEIGHT_STEP,
   FOLLOW_MODE_SPEED_MIN,
   FOLLOW_MODE_SPEED_MAX,
-  FOLLOW_MODE_SPEED_STEP
+  FOLLOW_MODE_SPEED_STEP,
+  LETTER_SPACING_MIN,
+  LETTER_SPACING_MAX,
+  LETTER_SPACING_STEP,
+  PRESET_COLOR_PALETTES,
 } from '../../../../core/models/document.model';
 
 export interface SettingsState {
@@ -32,9 +37,13 @@ export interface SettingsState {
   followModeSpeed: number;
   zoomLevel: ZoomLevel;
   pageLayout: PageLayout;
+  letterSpacing: number;
+  wordHighlighting: boolean;
+  bionicReading: boolean;
+  customColorPalette: CustomColorPalette | null;
 }
 
-export type TabType = 'settings' | 'chapters' | 'bookmarks';
+export type TabType = 'settings' | 'chapters' | 'bookmarks' | 'accessibility';
 
 @Component({
   selector: 'app-unified-settings-panel',
@@ -82,15 +91,23 @@ export class UnifiedSettingsPanelComponent {
   readonly FOLLOW_MODE_SPEED_MIN = FOLLOW_MODE_SPEED_MIN;
   readonly FOLLOW_MODE_SPEED_MAX = FOLLOW_MODE_SPEED_MAX;
   readonly FOLLOW_MODE_SPEED_STEP = FOLLOW_MODE_SPEED_STEP;
+  readonly LETTER_SPACING_MIN = LETTER_SPACING_MIN;
+  readonly LETTER_SPACING_MAX = LETTER_SPACING_MAX;
+  readonly LETTER_SPACING_STEP = LETTER_SPACING_STEP;
 
   /** Available font families */
   readonly fonts = READER_FONTS;
+
+  /** Preset color palettes */
+  readonly presetPalettes = PRESET_COLOR_PALETTES;
 
   /** Predefined theme options */
   readonly themeOptions: { label: string; value: ThemeOption }[] = [
     { label: 'Light', value: 'light' },
     { label: 'Dark', value: 'dark' },
     { label: 'Sepia', value: 'sepia' },
+    { label: 'HC Light', value: 'high-contrast-light' },
+    { label: 'HC Dark', value: 'high-contrast-dark' },
   ];
 
   /** Zoom level options */
@@ -117,6 +134,12 @@ export class UnifiedSettingsPanelComponent {
   private dragOffsetY = 0;
   private boundOnDragMove = this.onDragMove.bind(this);
   private boundOnDragEnd = this.onDragEnd.bind(this);
+
+  // --- Custom color palette state ---
+  showCustomPaletteEditor = signal<boolean>(false);
+  customBg = signal<string>('#ffffff');
+  customText = signal<string>('#000000');
+  customLink = signal<string>('#007bff');
 
   ngOnDestroy(): void {
     // Clean up any lingering drag listeners
@@ -261,6 +284,82 @@ export class UnifiedSettingsPanelComponent {
 
   toggleFollowMode(): void {
     this.emitSettings({ ...this.settings, followMode: !this.settings.followMode });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accessibility controls
+  // ---------------------------------------------------------------------------
+
+  increaseLetterSpacing(): void {
+    const newSpacing = Math.min(
+      Math.round((this.settings.letterSpacing + LETTER_SPACING_STEP) * 100) / 100,
+      LETTER_SPACING_MAX
+    );
+    this.emitSettings({ ...this.settings, letterSpacing: newSpacing });
+  }
+
+  decreaseLetterSpacing(): void {
+    const newSpacing = Math.max(
+      Math.round((this.settings.letterSpacing - LETTER_SPACING_STEP) * 100) / 100,
+      LETTER_SPACING_MIN
+    );
+    this.emitSettings({ ...this.settings, letterSpacing: newSpacing });
+  }
+
+  toggleWordHighlighting(): void {
+    this.emitSettings({ ...this.settings, wordHighlighting: !this.settings.wordHighlighting });
+  }
+
+  toggleBionicReading(): void {
+    this.emitSettings({ ...this.settings, bionicReading: !this.settings.bionicReading });
+  }
+
+  selectPresetPalette(palette: CustomColorPalette): void {
+    if (palette.name === 'Default') {
+      this.emitSettings({ ...this.settings, customColorPalette: null });
+    } else {
+      this.emitSettings({ ...this.settings, customColorPalette: palette });
+    }
+  }
+
+  toggleCustomPaletteEditor(): void {
+    this.showCustomPaletteEditor.update(v => !v);
+    if (this.settings.customColorPalette) {
+      this.customBg.set(this.settings.customColorPalette.background);
+      this.customText.set(this.settings.customColorPalette.text);
+      this.customLink.set(this.settings.customColorPalette.link);
+    }
+  }
+
+  applyCustomPalette(): void {
+    const palette: CustomColorPalette = {
+      name: 'Custom',
+      background: this.customBg(),
+      text: this.customText(),
+      link: this.customLink(),
+    };
+    this.emitSettings({ ...this.settings, customColorPalette: palette });
+    this.showCustomPaletteEditor.set(false);
+  }
+
+  clearCustomPalette(): void {
+    this.emitSettings({ ...this.settings, customColorPalette: null });
+  }
+
+  onCustomColorInput(field: 'bg' | 'text' | 'link', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (field === 'bg') this.customBg.set(value);
+    else if (field === 'text') this.customText.set(value);
+    else this.customLink.set(value);
+  }
+
+  /** Check if a preset palette is currently active */
+  isPaletteActive(palette: CustomColorPalette): boolean {
+    if (!this.settings.customColorPalette) return palette.name === 'Default';
+    return (
+      this.settings.customColorPalette.background === palette.background &&
+      this.settings.customColorPalette.text === palette.text
+    );
   }
 
   increaseFollowSpeed(): void {

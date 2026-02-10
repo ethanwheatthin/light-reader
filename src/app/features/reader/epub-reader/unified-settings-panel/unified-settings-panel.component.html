@@ -12,6 +12,7 @@
     class="unified-panel"
     role="dialog"
     aria-label="Reader settings panel"
+    aria-modal="true"
     [attr.data-theme]="theme"
     [style.left.px]="panelX()"
     [style.top.px]="panelY()"
@@ -57,6 +58,15 @@
         [attr.aria-selected]="activeTab() === 'bookmarks'"
         aria-label="Bookmarks and progress">
         🔖 Bookmarks
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab() === 'accessibility'"
+        (click)="switchTab('accessibility')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'accessibility'"
+        aria-label="Accessibility options">
+        ♿ Access
       </button>
     </nav>
 
@@ -415,6 +425,184 @@
               </div>
             </div>
           }
+
+        </div>
+      }
+
+      <!-- ACCESSIBILITY TAB -->
+      @if (activeTab() === 'accessibility') {
+        <div class="accessibility-tab" role="tabpanel" aria-label="Accessibility settings">
+          
+          <!-- Letter Spacing -->
+          <div class="settings-section">
+            <div class="control-header">
+              <span class="section-label">Letter Spacing</span>
+              <div class="control-buttons">
+                <button
+                  class="control-btn"
+                  (click)="decreaseLetterSpacing()"
+                  [disabled]="settings.letterSpacing <= LETTER_SPACING_MIN"
+                  aria-label="Decrease letter spacing">
+                  −
+                </button>
+                <span class="control-value">{{ settings.letterSpacing.toFixed(2) }}em</span>
+                <button
+                  class="control-btn"
+                  (click)="increaseLetterSpacing()"
+                  [disabled]="settings.letterSpacing >= LETTER_SPACING_MAX"
+                  aria-label="Increase letter spacing">
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reading Aids -->
+          <div class="settings-section">
+            <span class="section-label">Reading Aids</span>
+            <div class="toggle-options">
+              <button
+                class="toggle-btn"
+                [class.active]="settings.wordHighlighting"
+                (click)="toggleWordHighlighting()"
+                [attr.aria-pressed]="settings.wordHighlighting"
+                title="Highlight the current sentence while reading for easier tracking">
+                <span class="toggle-icon">{{ settings.wordHighlighting ? '✓' : '' }}</span>
+                <span class="toggle-label">Sentence Highlighting</span>
+              </button>
+              <button
+                class="toggle-btn"
+                [class.active]="settings.bionicReading"
+                (click)="toggleBionicReading()"
+                [attr.aria-pressed]="settings.bionicReading"
+                title="Bold the first portion of each word for faster reading">
+                <span class="toggle-icon">{{ settings.bionicReading ? '✓' : '' }}</span>
+                <span class="toggle-label">Bionic Reading</span>
+              </button>
+            </div>
+            @if (settings.bionicReading) {
+              <div class="bionic-preview" aria-hidden="true">
+                <p class="bionic-preview-text">
+                  <strong>Thi</strong>s is <strong>ho</strong>w <strong>bion</strong>ic <strong>rea</strong>ding <strong>loo</strong>ks. <strong>Yo</strong>ur <strong>bra</strong>in <strong>comple</strong>tes <strong>th</strong>e <strong>wor</strong>ds.
+                </p>
+              </div>
+            }
+          </div>
+
+          <div class="settings-divider"></div>
+
+          <!-- Color Palettes -->
+          <div class="settings-section">
+            <span class="section-label">Color Palette</span>
+            <div class="palette-grid">
+              @for (palette of presetPalettes; track palette.name) {
+                <button
+                  class="palette-btn"
+                  [class.selected]="isPaletteActive(palette)"
+                  (click)="selectPresetPalette(palette)"
+                  [attr.aria-pressed]="isPaletteActive(palette)"
+                  [attr.aria-label]="palette.name + ' color palette'"
+                  [title]="palette.name">
+                  <span
+                    class="palette-swatch"
+                    [style.background]="palette.background"
+                    [style.color]="palette.text"
+                    [style.border-color]="palette.text + '33'">
+                    Aa
+                  </span>
+                  <span class="palette-name">{{ palette.name }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Custom Color Editor -->
+          <div class="settings-section">
+            <button
+              class="custom-palette-toggle"
+              (click)="toggleCustomPaletteEditor()"
+              [attr.aria-expanded]="showCustomPaletteEditor()">
+              <span>🎨 Custom Colors</span>
+              <span class="toggle-arrow" [class.open]="showCustomPaletteEditor()">▾</span>
+            </button>
+            @if (showCustomPaletteEditor()) {
+              <div class="custom-palette-editor" role="group" aria-label="Custom color palette editor">
+                <div class="color-row">
+                  <label for="custom-bg">Background</label>
+                  <div class="color-input-group">
+                    <input
+                      type="color"
+                      id="custom-bg"
+                      [value]="customBg()"
+                      (input)="onCustomColorInput('bg', $event)"
+                      aria-label="Custom background color" />
+                    <span class="color-hex">{{ customBg() }}</span>
+                  </div>
+                </div>
+                <div class="color-row">
+                  <label for="custom-text">Text</label>
+                  <div class="color-input-group">
+                    <input
+                      type="color"
+                      id="custom-text"
+                      [value]="customText()"
+                      (input)="onCustomColorInput('text', $event)"
+                      aria-label="Custom text color" />
+                    <span class="color-hex">{{ customText() }}</span>
+                  </div>
+                </div>
+                <div class="color-row">
+                  <label for="custom-link">Links</label>
+                  <div class="color-input-group">
+                    <input
+                      type="color"
+                      id="custom-link"
+                      [value]="customLink()"
+                      (input)="onCustomColorInput('link', $event)"
+                      aria-label="Custom link color" />
+                    <span class="color-hex">{{ customLink() }}</span>
+                  </div>
+                </div>
+                <div class="custom-palette-preview"
+                  [style.background]="customBg()"
+                  [style.color]="customText()"
+                  aria-hidden="true">
+                  Preview text with your colors
+                </div>
+                <div class="custom-palette-actions">
+                  <button
+                    class="apply-palette-btn"
+                    (click)="applyCustomPalette()"
+                    aria-label="Apply custom color palette">
+                    Apply
+                  </button>
+                  @if (settings.customColorPalette) {
+                    <button
+                      class="clear-palette-btn"
+                      (click)="clearCustomPalette()"
+                      aria-label="Reset to default colors">
+                      Reset
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Screen Reader Info -->
+          <div class="settings-divider"></div>
+          <div class="settings-section">
+            <span class="section-label">Screen Reader</span>
+            <div class="sr-info-card" role="note">
+              <p>This reader supports screen reader navigation. Use your screen reader's heading and landmark navigation to move through book content.</p>
+              <ul class="sr-shortcuts">
+                <li><kbd>←</kbd> <kbd>→</kbd> Navigate pages</li>
+                <li><kbd>F</kbd> Toggle focus mode</li>
+                <li><kbd>B</kbd> Toggle bookmark</li>
+                <li><kbd>O</kbd> Open settings</li>
+              </ul>
+            </div>
+          </div>
 
         </div>
       }

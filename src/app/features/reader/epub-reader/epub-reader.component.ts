@@ -25,6 +25,7 @@ import {
   SpreadMode,
   ZoomLevel,
   PageLayout,
+  CustomColorPalette,
   FONT_SIZE_MIN,
   FONT_SIZE_STEP,
   LINE_HEIGHT_MIN,
@@ -108,6 +109,10 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   followModeSpeed = signal<number>(DEFAULT_READER_SETTINGS.followModeSpeed);
   zoomLevel = signal<ZoomLevel>(DEFAULT_READER_SETTINGS.zoomLevel);
   pageLayout = signal<PageLayout>(DEFAULT_READER_SETTINGS.pageLayout);
+  letterSpacing = signal<number>(DEFAULT_READER_SETTINGS.letterSpacing);
+  wordHighlighting = signal<boolean>(DEFAULT_READER_SETTINGS.wordHighlighting);
+  bionicReading = signal<boolean>(DEFAULT_READER_SETTINGS.bionicReading);
+  customColorPalette = signal<CustomColorPalette | null>(DEFAULT_READER_SETTINGS.customColorPalette);
 
   // --- Control constraints ---
   readonly FONT_SIZE_MIN = FONT_SIZE_MIN;
@@ -139,6 +144,10 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
       followModeSpeed: this.followModeSpeed(),
       zoomLevel: this.zoomLevel(),
       pageLayout: this.pageLayout(),
+      letterSpacing: this.letterSpacing(),
+      wordHighlighting: this.wordHighlighting(),
+      bionicReading: this.bionicReading(),
+      customColorPalette: this.customColorPalette(),
     };
   }
 
@@ -216,6 +225,9 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
       clearTimeout(this.focusModeControlsTimeout);
     }
     if (this.rendition) {
+      this.rendition.off('rendered', this.bionicRenderedHandler);
+      this.rendition.off('rendered', this.wordHighlightRenderedHandler);
+      this.rendition.off('rendered', this.customPaletteRenderedHandler);
       this.rendition.destroy();
     }
   }
@@ -306,6 +318,17 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.zoomLevel.set(newSettings.zoomLevel);
     this.pageLayout.set(newSettings.pageLayout);
 
+    // Accessibility settings
+    const letterSpacingChanged = this.letterSpacing() !== newSettings.letterSpacing;
+    this.letterSpacing.set(newSettings.letterSpacing);
+    const wordHighlightingChanged = this.wordHighlighting() !== newSettings.wordHighlighting;
+    this.wordHighlighting.set(newSettings.wordHighlighting);
+    const bionicReadingChanged = this.bionicReading() !== newSettings.bionicReading;
+    this.bionicReading.set(newSettings.bionicReading);
+    const customPaletteChanged =
+      JSON.stringify(this.customColorPalette()) !== JSON.stringify(newSettings.customColorPalette);
+    this.customColorPalette.set(newSettings.customColorPalette);
+
     if (focusModeChanged) {
       this.focusModeChange.emit(newSettings.focusMode);
     }
@@ -323,6 +346,26 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     // Apply zoom independently (CSS-based, no rendition recreation needed)
     if (zoomChanged) {
       this.applyZoom();
+    }
+
+    // Apply letter spacing
+    if (letterSpacingChanged) {
+      this.applyLetterSpacing();
+    }
+
+    // Apply bionic reading
+    if (bionicReadingChanged) {
+      this.applyBionicReading();
+    }
+
+    // Apply word highlighting
+    if (wordHighlightingChanged) {
+      this.applyWordHighlighting();
+    }
+
+    // Apply custom color palette
+    if (customPaletteChanged) {
+      this.applyCustomColorPalette();
     }
 
     // Handle follow mode toggle or speed change
@@ -380,6 +423,32 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
         'line-height': `${lh}`,
       },
     });
+
+    this.rendition.themes.register('high-contrast-light', {
+      body: {
+        background: '#ffffff',
+        color: '#000000',
+        'line-height': `${lh}`,
+        'letter-spacing': '0.05em',
+      },
+      'a, a:link, a:visited': {
+        color: '#0000ee !important',
+        'text-decoration': 'underline !important',
+      },
+    });
+
+    this.rendition.themes.register('high-contrast-dark', {
+      body: {
+        background: '#000000',
+        color: '#ffffff',
+        'line-height': `${lh}`,
+        'letter-spacing': '0.05em',
+      },
+      'a, a:link, a:visited': {
+        color: '#ffff00 !important',
+        'text-decoration': 'underline !important',
+      },
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -395,6 +464,10 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.applyLineHeightAndFont();
     this.applyHostTheme(this.theme());
     this.applyZoom();
+    this.applyLetterSpacing();
+    this.applyBionicReading();
+    this.applyWordHighlighting();
+    this.applyCustomColorPalette();
   }
 
   /** Re-apply line-height and font-family overrides (needed after theme selection) */
@@ -402,6 +475,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     if (!this.rendition) return;
     this.rendition.themes.override('line-height', `${this.lineHeight()}`);
     this.rendition.themes.override('font-family', this.fontFamily());
+    this.rendition.themes.override('letter-spacing', `${this.letterSpacing()}em`);
   }
 
   /**
@@ -478,6 +552,332 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
+  // Accessibility: Letter spacing
+  // ---------------------------------------------------------------------------
+
+  /** Apply letter spacing override to the epub rendition */
+  private applyLetterSpacing(): void {
+    if (!this.rendition) return;
+    this.rendition.themes.override('letter-spacing', `${this.letterSpacing()}em`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accessibility: Bionic reading
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Apply or remove bionic reading mode. Bionic reading bolds the first
+   * portion of each word so the brain can "auto-complete" the rest.
+   */
+  private applyBionicReading(): void {
+    if (!this.rendition) return;
+
+    try {
+      const contents = this.rendition.getContents();
+      if (!contents || contents.length === 0) return;
+
+      const iframe = contents[0];
+      const doc = iframe.document as Document;
+      if (!doc) return;
+
+      if (this.bionicReading()) {
+        this.injectBionicReading(doc);
+      } else {
+        this.removeBionicReading(doc);
+      }
+    } catch (error) {
+      console.warn('Could not apply bionic reading:', error);
+    }
+
+    // Re-apply on page changes
+    if (this.bionicReading()) {
+      this.rendition.off('rendered', this.bionicRenderedHandler);
+      this.rendition.on('rendered', this.bionicRenderedHandler);
+    } else {
+      this.rendition.off('rendered', this.bionicRenderedHandler);
+    }
+  }
+
+  private bionicRenderedHandler = () => {
+    if (!this.bionicReading() || !this.rendition) return;
+    try {
+      const contents = this.rendition.getContents();
+      if (contents && contents.length > 0) {
+        const doc = contents[0].document as Document;
+        if (doc) this.injectBionicReading(doc);
+      }
+    } catch {
+      // Silently ignore
+    }
+  };
+
+  /**
+   * Walk through all text nodes and wrap the first portion of each word
+   * in a `<b class="bionic-bold">` element.
+   */
+  private injectBionicReading(doc: Document): void {
+    // Remove existing bionic markup first
+    this.removeBionicReading(doc);
+
+    const walker = doc.createTreeWalker(
+      doc.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          const parent = node.parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          if (['SCRIPT', 'STYLE', 'B'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+          if (parent.classList.contains('bionic-bold')) return NodeFilter.FILTER_REJECT;
+          return node.textContent && node.textContent.trim().length > 0
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_REJECT;
+        },
+      }
+    );
+
+    const textNodes: Text[] = [];
+    let currentNode: Node | null;
+    while ((currentNode = walker.nextNode())) {
+      textNodes.push(currentNode as Text);
+    }
+
+    for (const textNode of textNodes) {
+      const text = textNode.textContent || '';
+      const fragment = doc.createDocumentFragment();
+
+      // Split by word boundaries while preserving whitespace
+      const parts = text.split(/(\s+)/);
+      for (const part of parts) {
+        if (/^\s+$/.test(part)) {
+          fragment.appendChild(doc.createTextNode(part));
+        } else if (part.length > 0) {
+          // Bold the first ~half of the word (min 1 char)
+          const boldLen = Math.max(1, Math.ceil(part.length * 0.5));
+          const boldPart = part.slice(0, boldLen);
+          const restPart = part.slice(boldLen);
+
+          const b = doc.createElement('b');
+          b.className = 'bionic-bold';
+          b.style.fontWeight = '700';
+          b.textContent = boldPart;
+          fragment.appendChild(b);
+
+          if (restPart) {
+            fragment.appendChild(doc.createTextNode(restPart));
+          }
+        }
+      }
+
+      textNode.parentNode?.replaceChild(fragment, textNode);
+    }
+  }
+
+  /** Remove all bionic reading markup from the document */
+  private removeBionicReading(doc: Document): void {
+    const bolds = doc.querySelectorAll('b.bionic-bold');
+    bolds.forEach((b) => {
+      const parent = b.parentNode;
+      if (parent) {
+        parent.replaceChild(doc.createTextNode(b.textContent || ''), b);
+        parent.normalize(); // Merge adjacent text nodes
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accessibility: Word (sentence) highlighting during reading
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Toggle sentence-level highlighting on page content.
+   * When enabled, the current sentence is highlighted as the user reads.
+   */
+  private applyWordHighlighting(): void {
+    if (!this.rendition) return;
+
+    if (this.wordHighlighting()) {
+      this.rendition.off('rendered', this.wordHighlightRenderedHandler);
+      this.rendition.on('rendered', this.wordHighlightRenderedHandler);
+      this.injectWordHighlightStyles();
+    } else {
+      this.rendition.off('rendered', this.wordHighlightRenderedHandler);
+      this.removeWordHighlightStyles();
+    }
+  }
+
+  private wordHighlightRenderedHandler = () => {
+    if (!this.wordHighlighting() || !this.rendition) return;
+    this.injectWordHighlightStyles();
+  };
+
+  /**
+   * Inject CSS-based sentence highlighting into the epub iframe.
+   * Uses a hover-like effect to highlight the sentence the user is reading.
+   */
+  private injectWordHighlightStyles(): void {
+    if (!this.rendition) return;
+
+    try {
+      const contents = this.rendition.getContents();
+      if (!contents || contents.length === 0) return;
+
+      const doc = contents[0].document as Document;
+      if (!doc) return;
+
+      // Remove existing style if any
+      const existing = doc.getElementById('word-highlight-style');
+      if (existing) existing.remove();
+
+      const style = doc.createElement('style');
+      style.id = 'word-highlight-style';
+
+      const isHighContrast =
+        this.theme() === 'high-contrast-light' || this.theme() === 'high-contrast-dark';
+      const isDark = this.theme() === 'dark' || this.theme() === 'high-contrast-dark';
+
+      let highlightBg: string;
+      let highlightOutline: string;
+      if (isHighContrast && isDark) {
+        highlightBg = 'rgba(255, 255, 0, 0.25)';
+        highlightOutline = '2px solid rgba(255, 255, 0, 0.5)';
+      } else if (isHighContrast) {
+        highlightBg = 'rgba(0, 0, 238, 0.12)';
+        highlightOutline = '2px solid rgba(0, 0, 238, 0.3)';
+      } else if (isDark) {
+        highlightBg = 'rgba(79, 172, 254, 0.15)';
+        highlightOutline = 'none';
+      } else {
+        highlightBg = 'rgba(79, 172, 254, 0.12)';
+        highlightOutline = 'none';
+      }
+
+      style.textContent = `
+        p:hover, li:hover, span:hover, blockquote:hover, h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
+          background: ${highlightBg} !important;
+          outline: ${highlightOutline};
+          outline-offset: 2px;
+          border-radius: 3px;
+          transition: background 0.15s ease;
+        }
+      `;
+
+      doc.head.appendChild(style);
+    } catch (error) {
+      console.warn('Could not inject word highlight styles:', error);
+    }
+  }
+
+  /** Remove sentence highlight styles from the epub iframe */
+  private removeWordHighlightStyles(): void {
+    if (!this.rendition) return;
+
+    try {
+      const contents = this.rendition.getContents();
+      if (!contents || contents.length === 0) return;
+
+      const doc = contents[0].document as Document;
+      if (!doc) return;
+
+      const existing = doc.getElementById('word-highlight-style');
+      if (existing) existing.remove();
+    } catch {
+      // Silently ignore
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accessibility: Custom color palette
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Apply a custom color palette to the epub rendition.
+   * Overrides the theme colors with user-specified values.
+   */
+  private applyCustomColorPalette(): void {
+    if (!this.rendition) return;
+
+    const palette = this.customColorPalette();
+
+    if (palette) {
+      this.rendition.themes.override('background', palette.background);
+      this.rendition.themes.override('color', palette.text);
+
+      // Also inject link color overrides
+      try {
+        const contents = this.rendition.getContents();
+        if (contents && contents.length > 0) {
+          const doc = contents[0].document as Document;
+          if (doc) {
+            const existing = doc.getElementById('custom-palette-style');
+            if (existing) existing.remove();
+
+            const style = doc.createElement('style');
+            style.id = 'custom-palette-style';
+            style.textContent = `
+              body { background: ${palette.background} !important; color: ${palette.text} !important; }
+              a, a:link, a:visited { color: ${palette.link} !important; }
+            `;
+            doc.head.appendChild(style);
+          }
+        }
+      } catch {
+        // Silently ignore
+      }
+
+      // Re-apply on page changes
+      this.rendition.off('rendered', this.customPaletteRenderedHandler);
+      this.rendition.on('rendered', this.customPaletteRenderedHandler);
+    } else {
+      // Remove custom palette overrides — re-select the current theme
+      this.rendition.off('rendered', this.customPaletteRenderedHandler);
+      this.rendition.themes.select(this.theme());
+      this.removeCustomPaletteStyles();
+    }
+  }
+
+  private customPaletteRenderedHandler = () => {
+    if (!this.customColorPalette() || !this.rendition) return;
+    const palette = this.customColorPalette()!;
+    try {
+      const contents = this.rendition.getContents();
+      if (contents && contents.length > 0) {
+        const doc = contents[0].document as Document;
+        if (doc) {
+          const existing = doc.getElementById('custom-palette-style');
+          if (existing) existing.remove();
+
+          const style = doc.createElement('style');
+          style.id = 'custom-palette-style';
+          style.textContent = `
+            body { background: ${palette.background} !important; color: ${palette.text} !important; }
+            a, a:link, a:visited { color: ${palette.link} !important; }
+          `;
+          doc.head.appendChild(style);
+        }
+      }
+    } catch {
+      // Silently ignore
+    }
+  };
+
+  /** Remove custom palette styles from the epub iframe */
+  private removeCustomPaletteStyles(): void {
+    if (!this.rendition) return;
+    try {
+      const contents = this.rendition.getContents();
+      if (contents && contents.length > 0) {
+        const doc = contents[0].document as Document;
+        if (doc) {
+          const existing = doc.getElementById('custom-palette-style');
+          if (existing) existing.remove();
+        }
+      }
+    } catch {
+      // Silently ignore
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Persistence helpers
   // ---------------------------------------------------------------------------
 
@@ -495,6 +895,10 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
       followModeSpeed: this.followModeSpeed(),
       zoomLevel: this.zoomLevel(),
       pageLayout: this.pageLayout(),
+      letterSpacing: this.letterSpacing(),
+      wordHighlighting: this.wordHighlighting(),
+      bionicReading: this.bionicReading(),
+      customColorPalette: this.customColorPalette(),
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -520,6 +924,10 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
         if (saved.followModeSpeed) this.followModeSpeed.set(saved.followModeSpeed);
         if (saved.zoomLevel) this.zoomLevel.set(saved.zoomLevel);
         if (saved.pageLayout) this.pageLayout.set(saved.pageLayout);
+        if (saved.letterSpacing != null) this.letterSpacing.set(saved.letterSpacing);
+        if (saved.wordHighlighting != null) this.wordHighlighting.set(saved.wordHighlighting);
+        if (saved.bionicReading != null) this.bionicReading.set(saved.bionicReading);
+        if (saved.customColorPalette !== undefined) this.customColorPalette.set(saved.customColorPalette);
       }
     } catch {
       console.warn('Could not load reader settings from localStorage');

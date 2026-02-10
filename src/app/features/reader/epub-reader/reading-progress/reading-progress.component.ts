@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ThemeOption } from '../../../../core/models/document.model';
 
 @Component({
   selector: 'app-reading-progress',
@@ -10,5 +11,5 @@ import { CommonModule } from '@angular/common';
 })
 export class ReadingProgressComponent {
   @Input() progress: number | null = 0;
-  @Input() theme: 'light' | 'dark' | 'sepia' = 'light';
+  @Input() theme: ThemeOption = 'light';
 }

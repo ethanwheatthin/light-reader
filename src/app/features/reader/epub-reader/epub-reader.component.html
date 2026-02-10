@@ -1,4 +1,8 @@
-<div class="epub-container" [attr.data-theme]="theme()" [class.focus-mode]="focusMode()">
+<div class="epub-container" [attr.data-theme]="theme()" [class.focus-mode]="focusMode()" role="main" aria-label="EPUB reader">
+  <!-- Screen reader live region for page announcements -->
+  <div class="sr-only" aria-live="polite" aria-atomic="true" role="status">
+    {{ currentLocation }}
+  </div>
   <!-- Reading progress bar -->
   <app-reading-progress 
     [progress]="readingProgress$ | async" 
@@ -25,10 +29,10 @@
     (bookmarkRemove)="removeBookmark($event)">
   </app-unified-settings-panel>
 
-  <div #viewer class="epub-viewer" (click)="onViewerClick()"></div>
+  <div #viewer class="epub-viewer" (click)="onViewerClick()" role="document" aria-label="Book content"></div>
   
   <!-- Top bar: navigation + settings toggle -->
-  <div class="reader-controls" [class.hidden-in-focus]="focusMode()" [class.focus-temporary-show]="focusModeControlsVisible()">
+  <nav class="reader-controls" [class.hidden-in-focus]="focusMode()" [class.focus-temporary-show]="focusModeControlsVisible()" aria-label="Reader navigation">
     <button
       class="bookmark-toggle"
       (click)="toggleBookmarkAtCurrentLocation()"
@@ -38,7 +42,10 @@
       {{ isCurrentLocationBookmarked() ? '🔖' : '🏷️' }}
     </button>
 
-    <button (click)="prevPage()" [disabled]="!canGoPrev" aria-label="Previous page">Previous</button>
+    <button (click)="prevPage()" [disabled]="!canGoPrev" aria-label="Previous page">
+      {{'<'}}
+
+    </button>
     <span
       class="page-info"
       (click)="togglePageInfo()"
@@ -52,7 +59,7 @@
     
     
     
-    <button (click)="nextPage()" [disabled]="!canGoNext" aria-label="Next page">Next</button>
+    <button (click)="nextPage()" [disabled]="!canGoNext" aria-label="Next page">{{'>'}}</button>
 
     @if (estimatedTimeRemaining$ | async; as eta) {
       <span class="eta-badge" title="Estimated time remaining">{{ eta }}</span>
@@ -67,7 +74,7 @@
       title="Settings & More">
       ⚙️
     </button>
-  </div>
+  </nav>
 
   <!-- Follow mode indicator -->
   @if (followMode()) {
