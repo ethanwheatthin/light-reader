@@ -9,6 +9,7 @@ import { EpubService } from '../../core/services/epub.service';
 import { PdfService } from '../../core/services/pdf.service';
 import { OpenLibraryService } from '../../core/services/open-library.service';
 import { Document } from '../../core/models/document.model';
+import { ShelvesActions } from '../shelves/shelves.actions';
 
 @Injectable()
 export class DocumentsEffects {
@@ -111,8 +112,9 @@ export class DocumentsEffects {
             try {
               const payload = JSON.parse(text);
               await this.indexDB.importLibrary(payload);
-              // reload metadata from storage
+              // reload metadata and shelves from storage so store is in sync
               this.store.dispatch(DocumentsActions.loadDocuments());
+              this.store.dispatch(ShelvesActions.loadShelves());
               return DocumentsActions.restoreLibrarySuccess();
             } catch (e: any) {
               return DocumentsActions.restoreLibraryFailure({ error: e?.message || String(e) });

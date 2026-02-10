@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import localforage from 'localforage';
 import { Document } from '../models/document.model';
+import { Shelf } from '../models/shelf.model';
+import { ShelfService } from './shelf.service';
 
 @Injectable({ providedIn: 'root' })
 export class IndexDBService {
@@ -13,6 +15,9 @@ export class IndexDBService {
     name: 'epub-pdf-reader',
     storeName: 'metadata'
   });
+
+  // Inject shelf service for exporting/importing shelves
+  private shelfService = inject(ShelfService);
 
   async saveFile(id: string, blob: Blob): Promise<void> {
     await this.filesStore.setItem(id, blob);
@@ -54,7 +59,7 @@ export class IndexDBService {
   }
 
   /**
-   * Export the entire library (metadata + files) into a single JSON blob
+   * Export the entire library (metadata + files + shelves) into a single JSON blob
    * where files are stored as data URLs (base64). This is used for backup/restore.
    */
   async exportLibrary(): Promise<Blob> {
@@ -69,25 +74,58 @@ export class IndexDBService {
       }
     }
 
-    const payload = { exportedAt: new Date().toISOString(), metadata, files };
+    // include shelves in backups
+    const shelves: Shelf[] = await this.shelfService.getAllShelves();
+
+    const payload = { exportedAt: new Date().toISOString(), metadata, files, shelves };
     return new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   }
 
   /**
    * Import a library backup payload produced by exportLibrary(). This will save
-   * files and metadata into the stores. It overwrites existing items with the
-   * same IDs.
+   * files, metadata and shelves into the stores. It overwrites existing items with the
+   * same IDs and performs basic reconciliation to ensure documents and shelves
+   * remain consistent (documents referenced by a shelf will have their `shelfId` set).
    */
   async importLibrary(payload: any): Promise<void> {
-    const { metadata = [], files = [] } = payload;
+    const { metadata = [], files = [], shelves = [] } = payload;
 
     for (const f of files) {
       const blob = this.dataUrlToBlob(f.data, f.type || '');
       await this.saveFile(f.id, blob);
     }
 
+    // Save metadata first
     for (const doc of metadata) {
       await this.saveMetadata(doc as Document);
+    }
+
+    // Import shelves
+    for (const s of shelves) {
+      await this.shelfService.saveShelf(s as Shelf);
+    }
+
+    // Reconcile: ensure that any document listed in a shelf has its metadata.shelfId set
+    const shelfIds = new Set<string>(shelves.map((s: any) => s.id));
+
+    for (const s of shelves) {
+      if (!s?.documentIds || !Array.isArray(s.documentIds)) continue;
+      for (const documentId of s.documentIds) {
+        const doc = await this.getMetadata(documentId);
+        if (doc) {
+          doc.shelfId = s.id;
+          await this.saveMetadata(doc);
+        }
+      }
+    }
+
+    // Also clear invalid shelfIds on documents that reference missing shelves
+    const allDocs = await this.getAllMetadata();
+    for (const doc of allDocs) {
+      if (doc.shelfId && !shelfIds.has(doc.shelfId)) {
+        doc.shelfId = null;
+        await this.saveMetadata(doc);
+      }
     }
   }
 
