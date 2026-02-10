@@ -24,6 +24,22 @@
   font-size: 1.5rem;
 }
 
+/* Sidebar toggle shown only on mobile */
+.btn-sidebar-toggle {
+  display: none;
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-sidebar-toggle:hover { background: rgba(0,0,0,0.04); border-radius: 6px; }
+
+@media (max-width: 768px) {
+  .btn-sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
+}
+
 .brand-name {
   font-size: 1.25rem;
   font-weight: 400;
@@ -74,4 +90,24 @@
 
 .search-input::placeholder {
   color: var(--color-text-tertiary);
+}
+
+/* Mobile adjustments moved from parent so behavior is preserved when top bar is a child component */
+@media (max-width: 768px) {
+  .top-bar {
+    padding: 0.5rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .brand {
+    min-width: auto;
+  }
+
+  .brand-name {
+    font-size: 1rem;
+  }
+
+  .top-bar-actions {
+    display: none;
+  }
 }

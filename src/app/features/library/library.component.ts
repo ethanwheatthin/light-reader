@@ -12,6 +12,8 @@ import { selectAllDocuments, selectLoading } from '../../store/documents/documen
 import { selectAllShelves, selectSelectedShelfId } from '../../store/shelves/shelves.selectors';
 import { DocumentsActions } from '../../store/documents/documents.actions';
 import { ShelvesActions } from '../../store/shelves/shelves.actions';
+import { UiActions } from '../../store/ui/ui.actions';
+import { selectSidebarOpen } from '../../store/ui/ui.selectors';
 import { UploadComponent } from '../upload/upload.component';
 import { EditBookModalComponent } from './edit-book-modal/edit-book-modal.component';
 import { CreateShelfModalComponent } from './create-shelf-modal/create-shelf-modal.component';
@@ -63,6 +65,9 @@ export class LibraryComponent implements OnInit {
 
   shelvesExpanded = true;
   openMenuId: string | null = null;
+
+  // Mobile sidebar state (driven by NgRx UI state)
+  sidebarOpen$ = this.store.select(selectSidebarOpen);
   
   private searchQuery$ = new BehaviorSubject<string>('');
 
@@ -300,6 +305,11 @@ export class LibraryComponent implements OnInit {
     }
   }
 
+  // Close the mobile sidebar via NgRx
+  closeMobileSidebar(): void {
+    this.store.dispatch(UiActions.closeSidebar());
+  }
+
   selectShelf(shelfId: string | null): void {
     this.store.dispatch(ShelvesActions.selectShelf({ id: shelfId }));
   }
@@ -356,6 +366,8 @@ export class LibraryComponent implements OnInit {
       );
     }
   }
+
+
 
   onMainListDropped(event: CdkDragDrop<any>): void {
     // Currently we don't allow reordering in the main list; drops here are no-ops.

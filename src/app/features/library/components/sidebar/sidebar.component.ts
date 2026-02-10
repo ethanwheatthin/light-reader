@@ -1,7 +1,9 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostBinding, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Observable } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { UiActions } from '../../../../store/ui/ui.actions';
 import { Document } from '../../../../core/models/document.model';
 import { Shelf } from '../../../../core/models/shelf.model';
 
@@ -17,6 +19,17 @@ export class SidebarComponent {
   @Input() shelves$!: Observable<Shelf[]>;
   @Input() selectedShelfId$!: Observable<string | null> | null;
   @Input() shelvesExpanded = true;
+
+  // Track mobile open state; when true the host receives the .mobile-open class
+  @Input()
+  @HostBinding('class.mobile-open')
+  mobileOpen = false;
+
+  private store = inject(Store);
+
+  closeMobile() {
+    this.store.dispatch(UiActions.closeSidebar());
+  }
 
   @Output() toggleShelves = new EventEmitter<boolean>();
   @Output() selectShelf = new EventEmitter<string | null>();
@@ -34,6 +47,10 @@ export class SidebarComponent {
 
   emitSelect(id: string | null) {
     this.selectShelf.emit(id);
+    // On mobile, close the overlay after selecting a shelf
+    if (window.innerWidth <= 768) {
+      this.store.dispatch(UiActions.closeSidebar());
+    }
   }
 
   emitDelete(id: string, $event: Event) {

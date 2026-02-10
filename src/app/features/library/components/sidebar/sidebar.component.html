@@ -1,17 +1,22 @@
+
+<div class="sidebar-top">
+  <button class="btn-close-mobile" (click)="closeMobile()" aria-label="Close navigation">×</button>
+</div>
+
 <nav class="sidebar-nav">
-  <button class="nav-item active">
+  <button class="nav-item active" title="Books">
     <span class="nav-icon">📚</span>
     <span class="nav-label">Books</span>
     @if (documents$ | async; as docs) {
       <span class="nav-count">{{ docs.length }}</span>
     }
   </button>
-  <button class="nav-item" disabled>
+  <button class="nav-item" disabled title="Series">
     <span class="nav-icon">📖</span>
     <span class="nav-label">Series</span>
     <span class="nav-count">0</span>
   </button>
-  <button class="nav-item" disabled>
+  <button class="nav-item" disabled title="Hidden">
     <span class="nav-icon">🙈</span>
     <span class="nav-label">Hidden</span>
   </button>
@@ -27,6 +32,7 @@
       @if (documents$ | async; as docs) {
         <div
           class="shelf-item"
+          title="Unshelved"
           [class.active]="(selectedShelfId$ | async) === null"
           (click)="emitSelect(null)"
           cdkDropList
@@ -48,6 +54,7 @@
               @for (shelf of shelves; track shelf.id) {
                 <div
                   class="shelf-item"
+                  title="{{ shelf.name }}"
                   [class.active]="(selectedShelfId$ | async) === shelf.id"
                   (click)="emitSelect(shelf.id)"
                   cdkDropList

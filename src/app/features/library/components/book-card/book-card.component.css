@@ -89,3 +89,8 @@
 .menu-divider { height: 1px; background: #e0e0e0; margin: 0.25rem 0; }
 
 .menu-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; }
+
+/* Mobile: always show the 3-dot menu on small screens (no hover available) */
+@media (max-width: 768px) {
+  .btn-more { opacity: 1; }
+}

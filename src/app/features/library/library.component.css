@@ -947,6 +947,17 @@
   .btn-more {
     opacity: 1;
   }
+
+  /* Mobile backdrop for off-canvas sidebar */
+  .mobile-backdrop {
+    position: fixed;
+    top: 57px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 30;
+  }
 }
 
 /* ---- Large screens ---- */

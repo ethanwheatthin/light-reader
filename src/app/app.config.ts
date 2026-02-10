@@ -10,6 +10,7 @@ import { documentsFeature } from './store/documents/documents.reducer';
 import { DocumentsEffects } from './store/documents/documents.effects';
 import { shelvesFeature } from './store/shelves/shelves.reducer';
 import { ShelvesEffects } from './store/shelves/shelves.effects';
+import { uiFeature } from './store/ui/ui.reducer';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,7 +20,8 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideStore({
       [documentsFeature.name]: documentsFeature.reducer,
-      [shelvesFeature.name]: shelvesFeature.reducer
+      [shelvesFeature.name]: shelvesFeature.reducer,
+      [uiFeature.name]: uiFeature.reducer
     }),
     provideEffects([DocumentsEffects, ShelvesEffects]),
     provideStoreDevtools({ maxAge: 25 })

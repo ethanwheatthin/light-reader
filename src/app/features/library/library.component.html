@@ -12,6 +12,7 @@
       [shelves$]="shelves$"
       [selectedShelfId$]="selectedShelfId$"
       [shelvesExpanded]="shelvesExpanded"
+      [mobileOpen]="(sidebarOpen$ | async) ?? false"
       (toggleShelves)="shelvesExpanded = $event"
       (selectShelf)="selectShelf($event)"
       (createShelf)="openCreateShelfModal()"
@@ -158,6 +159,11 @@
     </main>
   </div>
 </div>
+
+<!-- Mobile sidebar backdrop -->
+@if (sidebarOpen$ | async; as _open) {
+  <div class="mobile-backdrop" (click)="closeMobileSidebar()"></div>
+}
 
 <!-- Backdrop to close menus -->
 @if (openMenuId) {
