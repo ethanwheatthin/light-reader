@@ -30,7 +30,9 @@ import { BookCardComponent } from './components/book-card/book-card.component';
     EditBookModalComponent,
     TopBarComponent,
     SidebarComponent,
-    BookCardComponent
+    BookCardComponent,
+    // Import/Export modal
+    // (loaded via MatDialog)
   ],
   templateUrl: './library.component.html',
   styleUrl: './library.component.css'
@@ -284,6 +286,18 @@ export class LibraryComponent implements OnInit {
         this.store.dispatch(ShelvesActions.createShelf({ name: result.name, color: result.color }));
       }
     });
+  }
+
+  openImportExportModal(): void {
+    const comp = (window as any).ImportExportModalComponent;
+    if (comp) {
+      this.dialog.open(comp, { width: '600px', disableClose: false });
+    } else {
+      import('./import-export-modal/import-export-modal.component').then(m => {
+        (window as any).ImportExportModalComponent = m.ImportExportModalComponent;
+        this.dialog.open(m.ImportExportModalComponent, { width: '600px', disableClose: false });
+      });
+    }
   }
 
   selectShelf(shelfId: string | null): void {

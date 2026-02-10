@@ -35,6 +35,13 @@ export const documentsFeature = createFeature({
       loading: false,
       error
     })),
+
+    // Bulk upload handlers
+    on(DocumentsActions.uploadDocuments, (state) => ({ ...state, loading: true, error: null })),
+    on(DocumentsActions.uploadDocumentsSuccess, (state, { documents }) =>
+      adapter.addMany(documents, { ...state, loading: false })
+    ),
+    on(DocumentsActions.uploadDocumentsFailure, (state, { error }) => ({ ...state, loading: false, error })),
     on(DocumentsActions.loadDocuments, (state) => ({
       ...state,
       loading: true

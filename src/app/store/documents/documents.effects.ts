@@ -33,6 +33,97 @@ export class DocumentsEffects {
     )
   );
 
+  // Bulk upload multiple files concurrently
+  uploadDocuments$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DocumentsActions.uploadDocuments),
+      mergeMap(({ files }) =>
+        from(Promise.all(files.map((f) => this.processUpload(f)))).pipe(
+          mergeMap((documents) =>
+            // Save metadata for all documents
+            from(Promise.all(documents.map((d) => this.indexDB.saveMetadata(d)))).pipe(
+              map(() => DocumentsActions.uploadDocumentsSuccess({ documents }))
+            )
+          ),
+          catchError((error) => of(DocumentsActions.uploadDocumentsFailure({ error: error?.message || String(error) })))
+        )
+      )
+    )
+  );
+
+  // Export metadata to a JSON file and trigger download
+  exportMetadata$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DocumentsActions.exportMetadata),
+      mergeMap(() =>
+        from(this.indexDB.getAllMetadata()).pipe(
+          map((metadata) => {
+            const json = JSON.stringify(metadata, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const filename = `library-metadata-${new Date().toISOString().slice(0,10)}.json`;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            return DocumentsActions.exportMetadataSuccess({ fileName: filename });
+          }),
+          catchError((error) => of(DocumentsActions.exportMetadataFailure({ error: error?.message || String(error) })))
+        )
+      )
+    )
+  );
+
+  // Create a full library backup (metadata + files) and trigger download
+  backupLibrary$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DocumentsActions.backupLibrary),
+      mergeMap(() =>
+        from(this.indexDB.exportLibrary()).pipe(
+          map((blob) => {
+            const filename = `library-backup-${new Date().toISOString().slice(0,10)}.json`;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            return DocumentsActions.backupLibrarySuccess({ fileName: filename });
+          }),
+          catchError((error) => of(DocumentsActions.backupLibraryFailure({ error: error?.message || String(error) })))
+        )
+      )
+    )
+  );
+
+  // Restore library from an exported backup file
+  restoreLibrary$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DocumentsActions.restoreLibrary),
+      mergeMap(({ file }) =>
+        from(this.readFileAsText(file)).pipe(
+          mergeMap(async (text) => {
+            try {
+              const payload = JSON.parse(text);
+              await this.indexDB.importLibrary(payload);
+              // reload metadata from storage
+              this.store.dispatch(DocumentsActions.loadDocuments());
+              return DocumentsActions.restoreLibrarySuccess();
+            } catch (e: any) {
+              return DocumentsActions.restoreLibraryFailure({ error: e?.message || String(e) });
+            }
+          }),
+          catchError((error) => of(DocumentsActions.restoreLibraryFailure({ error: error?.message || String(error) })))
+        )
+      )
+    )
+  );
+
   uploadDocumentSuccess$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DocumentsActions.uploadDocumentSuccess),
@@ -276,6 +367,15 @@ export class DocumentsEffects {
         }
         resolve();
       }).unsubscribe();
+    });
+  }
+
+  private readFileAsText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsText(file);
     });
   }
 

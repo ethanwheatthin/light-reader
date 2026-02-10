@@ -1,0 +1,28 @@
+<div class="import-export-shell">
+  <h2>Import / Export</h2>
+
+  <!-- <div class="row">
+    <button class="btn" (click)="exportMetadata()" [disabled]="busy">Export Library Metadata</button>
+    <small class="muted">Produces a JSON file with all document metadata.</small>
+  </div> -->
+
+  <div class="row">
+    <button class="btn" (click)="backupLibrary()" [disabled]="busy">Backup Full Library</button>
+    <small class="muted">Creates a JSON backup containing metadata and file data (base64).</small>
+  </div>
+
+  <div class="row">
+    <label class="file-label">Restore from backup</label>
+    <input type="file" accept="application/json" (change)="onFileSelected($event)" />
+    <button class="btn" (click)="restoreFromFile()" [disabled]="busy || !selectedFile">Restore</button>
+  </div>
+
+  <div class="row status">
+    <div *ngIf="busy" class="spinner">⏳</div>
+    <div *ngIf="message" class="message">{{ message }}</div>
+  </div>
+
+  <div class="row actions">
+    <button class="btn btn-secondary" (click)="close()">Close</button>
+  </div>
+</div>

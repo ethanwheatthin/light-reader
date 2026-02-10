@@ -4,9 +4,16 @@ import { Document, Bookmark, ReadingSession, ReadingGoal, BookMetadata } from '.
 export const DocumentsActions = createActionGroup({
   source: 'Documents',
   events: {
+    // Single upload
     'Upload Document': props<{ file: File }>(),
     'Upload Document Success': props<{ document: Document }>(),
     'Upload Document Failure': props<{ error: string }>(),
+
+    // Bulk upload
+    'Upload Documents': props<{ files: File[] }>(),
+    'Upload Documents Success': props<{ documents: Document[] }>(),
+    'Upload Documents Failure': props<{ error: string }>(),
+
     'Load Documents': emptyProps(),
     'Load Documents Success': props<{ documents: Document[] }>(),
     'Delete Document': props<{ id: string }>(),
@@ -31,5 +38,18 @@ export const DocumentsActions = createActionGroup({
     'Update Book Metadata': props<{ id: string; metadata: BookMetadata }>(),
     'Fetch Metadata From Open Library': props<{ id: string; title: string }>(),
     'Fetch Metadata Success': props<{ id: string; metadata: BookMetadata }>(),
+
+    // Import / Export / Backup
+    'Export Metadata': emptyProps(),
+    'Export Metadata Success': props<{ fileName: string }>(),
+    'Export Metadata Failure': props<{ error: string }>(),
+
+    'Backup Library': emptyProps(),
+    'Backup Library Success': props<{ fileName: string }>(),
+    'Backup Library Failure': props<{ error: string }>(),
+
+    'Restore Library': props<{ file: File }>(),
+    'Restore Library Success': emptyProps(),
+    'Restore Library Failure': props<{ error: string }>(),
   }
 });

@@ -14,9 +14,10 @@ export class UploadComponent {
   private store = inject(Store);
 
   onFileSelected(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-      this.store.dispatch(DocumentsActions.uploadDocument({ file }));
+    const files = (event.target as HTMLInputElement).files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      this.store.dispatch(DocumentsActions.uploadDocuments({ files: fileArray }));
       // Reset input
       (event.target as HTMLInputElement).value = '';
     }

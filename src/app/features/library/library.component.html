@@ -66,6 +66,7 @@
               <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Grid view">⊞</button>
               <button class="view-btn" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="List view">☰</button>
             </div>
+            <button class="toolbar-btn" title="Import / Export" (click)="openImportExportModal()">⇄</button>
             <app-upload></app-upload>
           </div>
         </div>
@@ -147,7 +148,10 @@
           <div class="empty-icon">📚</div>
           <h3>No books yet</h3>
           <p>Upload an EPUB or PDF to get started</p>
-          <app-upload></app-upload>
+          <div class="flex layout-row layout-align-center-center empty-actions" style="gap: 10px;">
+            <app-upload></app-upload>
+            <button class="toolbar-btn" title="Import / Export" (click)="openImportExportModal()">⇄ Import / Export</button>
+          </div>
         </div>
       }
     }
