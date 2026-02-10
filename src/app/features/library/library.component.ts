@@ -15,6 +15,9 @@ import { ShelvesActions } from '../../store/shelves/shelves.actions';
 import { UploadComponent } from '../upload/upload.component';
 import { EditBookModalComponent } from './edit-book-modal/edit-book-modal.component';
 import { CreateShelfModalComponent } from './create-shelf-modal/create-shelf-modal.component';
+import { TopBarComponent } from './components/top-bar/top-bar.component';
+import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { BookCardComponent } from './components/book-card/book-card.component';
 
 @Component({
   selector: 'app-library',
@@ -24,7 +27,10 @@ import { CreateShelfModalComponent } from './create-shelf-modal/create-shelf-mod
     FormsModule,
     DragDropModule,
     UploadComponent,
-    EditBookModalComponent
+    EditBookModalComponent,
+    TopBarComponent,
+    SidebarComponent,
+    BookCardComponent
   ],
   templateUrl: './library.component.html',
   styleUrl: './library.component.css'
@@ -45,6 +51,14 @@ export class LibraryComponent implements OnInit {
   searchQuery = '';
   viewMode: 'grid' | 'list' = 'grid';
   sortBy: 'recent' | 'progress' = 'recent';
+  sortOrder: 'desc' | 'asc' = 'desc';
+  // Expose as subjects so the list recomputes when sort settings change
+  private sortBy$ = new BehaviorSubject<'recent' | 'progress'>(this.sortBy);
+  private sortOrder$ = new BehaviorSubject<'desc' | 'asc'>(this.sortOrder);
+
+  // Which sort dropdown is open (null | 'recent' | 'progress')
+  openSortMenu: 'recent' | 'progress' | null = null;
+
   shelvesExpanded = true;
   openMenuId: string | null = null;
   
@@ -60,9 +74,11 @@ export class LibraryComponent implements OnInit {
   filteredDocuments$: Observable<Document[]> = combineLatest([
     this.documents$,
     this.searchQuery$,
-    this.selectedShelfId$
+    this.selectedShelfId$,
+    this.sortBy$,
+    this.sortOrder$
   ]).pipe(
-    map(([docs, query, selectedShelfId]) => {
+    map(([docs, query, selectedShelfId, sortBy, sortOrder]) => {
       let filtered = docs;
       
       // Filter by selected shelf
@@ -81,6 +97,19 @@ export class LibraryComponent implements OnInit {
           (d.metadata?.author?.toLowerCase().includes(q))
         );
       }
+
+      // Sort according to UI selection
+      filtered = filtered.slice().sort((a, b) => {
+        let cmp = 0;
+        if (sortBy === 'recent') {
+          const ta = (a.lastOpened ?? a.uploadDate)?.valueOf() ?? 0;
+          const tb = (b.lastOpened ?? b.uploadDate)?.valueOf() ?? 0;
+          cmp = ta - tb;
+        } else if (sortBy === 'progress') {
+          cmp = this.getProgress(a) - this.getProgress(b);
+        }
+        return sortOrder === 'asc' ? cmp : -cmp;
+      });
       
       return filtered;
     })
@@ -89,6 +118,23 @@ export class LibraryComponent implements OnInit {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.openMenuId = null;
+    this.openSortMenu = null;
+  }
+
+  toggleSortMenu(menu: 'recent' | 'progress', event: Event): void {
+    event.stopPropagation();
+    this.openMenuId = null; // close other menus
+    this.openSortMenu = this.openSortMenu === menu ? null : menu;
+    this.sortBy = menu;
+    this.sortBy$.next(this.sortBy);
+  }
+
+  setSort(sort: 'recent' | 'progress', order: 'asc' | 'desc'): void {
+    this.sortBy = sort;
+    this.sortOrder = order;
+    this.sortBy$.next(this.sortBy);
+    this.sortOrder$.next(this.sortOrder);
+    this.openSortMenu = null;
   }
 
   ngOnInit(): void {

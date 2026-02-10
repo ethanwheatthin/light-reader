@@ -1,0 +1,17 @@
+<header class="top-bar">
+  <div class="brand">
+    <span class="brand-icon">📖</span>
+    <span class="brand-name">LightReader</span>
+  </div>
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input
+      type="text"
+      placeholder="Search"
+      class="search-input"
+      [ngModel]="searchQuery"
+      (ngModelChange)="onInput($event)"
+    />
+  </div>
+  <div class="top-bar-actions"></div>
+</header>

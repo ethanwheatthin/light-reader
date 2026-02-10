@@ -1,0 +1,77 @@
+<nav class="sidebar-nav">
+  <button class="nav-item active">
+    <span class="nav-icon">📚</span>
+    <span class="nav-label">Books</span>
+    @if (documents$ | async; as docs) {
+      <span class="nav-count">{{ docs.length }}</span>
+    }
+  </button>
+  <button class="nav-item" disabled>
+    <span class="nav-icon">📖</span>
+    <span class="nav-label">Series</span>
+    <span class="nav-count">0</span>
+  </button>
+  <button class="nav-item" disabled>
+    <span class="nav-icon">🙈</span>
+    <span class="nav-label">Hidden</span>
+  </button>
+</nav>
+
+<div class="sidebar-section">
+  <div class="sidebar-section-header" (click)="onShelfHeaderClick()">
+    <span>Shelves</span>
+    <span class="chevron" [class.expanded]="shelvesExpanded">▸</span>
+  </div>
+  @if (shelvesExpanded) {
+    <div class="shelf-list">
+      @if (documents$ | async; as docs) {
+        <div
+          class="shelf-item"
+          [class.active]="(selectedShelfId$ | async) === null"
+          (click)="emitSelect(null)"
+          cdkDropList
+          [attr.data-shelf-id]="''"
+          [cdkDropListData]="docs"
+          [cdkDropListConnectedTo]="['books-grid', 'books-list']"
+          (cdkDropListDropped)="onDrop($event, null)"
+        >
+          @if (docs.length > 0 && docs[0].metadata?.coverUrl) {
+            <img class="shelf-thumb" [src]="docs[0].metadata?.coverUrl" alt="" />
+          } @else {
+            <span class="shelf-thumb-placeholder">📚</span>
+          }
+          <span class="shelf-name">Unshelved</span>
+              <span class="nav-count">{{ unshelvedCount(docs) }}</span>
+            </div>
+
+            @if (shelves$ | async; as shelves) {
+              @for (shelf of shelves; track shelf.id) {
+                <div
+                  class="shelf-item"
+                  [class.active]="(selectedShelfId$ | async) === shelf.id"
+                  (click)="emitSelect(shelf.id)"
+                  cdkDropList
+                  [attr.data-shelf-id]="shelf.id"
+                  [cdkDropListData]="docs"
+                  [cdkDropListConnectedTo]="['books-grid', 'books-list']"
+                  (cdkDropListDropped)="onDrop($event, shelf.id)"
+                >
+                  <span class="shelf-color-indicator" [style.background-color]="shelf.color"></span>
+                  <span class="shelf-name">{{ shelf.name }}</span>
+                  <span class="nav-count">{{ shelfCount(docs, shelf) }}</span>
+                  <button
+                    class="btn-delete-shelf"
+                    (click)="emitDelete(shelf.id, $event)"
+                    title="Delete shelf"
+                  >×</button>
+                </div>
+              }
+            }
+          }
+          <button class="btn-create-shelf" (click)="createShelf.emit()">
+            <span class="create-icon">✏️</span>
+            <span>Create shelf</span>
+          </button>
+        </div>
+      }
+    </div>

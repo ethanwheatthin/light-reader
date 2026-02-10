@@ -1,105 +1,23 @@
 <div class="library-shell">
   <!-- Top Bar — full width above everything -->
-  <header class="top-bar">
-    <div class="brand">
-      <span class="brand-icon">📖</span>
-      <span class="brand-name">LightReader</span>
-    </div>
-    <div class="search-bar">
-      <span class="search-icon">🔍</span>
-      <input
-        type="text"
-        placeholder="Search"
-        class="search-input"
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearchChange()"
-      />
-    </div>
-    <div class="top-bar-actions"></div>
-  </header>
+  <app-library-top-bar
+    [searchQuery]="searchQuery"
+    (searchChange)="searchQuery = $event; onSearchChange()"
+  ></app-library-top-bar>
 
   <!-- Body: Sidebar + Content -->
   <div class="library-body">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <nav class="sidebar-nav">
-      <button class="nav-item active">
-        <span class="nav-icon">📚</span>
-        <span class="nav-label">Books</span>
-        @if (documents$ | async; as docs) {
-          <span class="nav-count">{{ docs.length }}</span>
-        }
-      </button>
-      <button class="nav-item" disabled>
-        <span class="nav-icon">📖</span>
-        <span class="nav-label">Series</span>
-        <span class="nav-count">0</span>
-      </button>
-      <button class="nav-item" disabled>
-        <span class="nav-icon">🙈</span>
-        <span class="nav-label">Hidden</span>
-      </button>
-    </nav>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-header" (click)="shelvesExpanded = !shelvesExpanded">
-        <span>Shelves</span>
-        <span class="chevron" [class.expanded]="shelvesExpanded">▸</span>
-      </div>
-      @if (shelvesExpanded) {
-        <div class="shelf-list">
-          @if (documents$ | async; as docs) {
-            <div
-              class="shelf-item"
-              [class.active]="(selectedShelfId$ | async) === null"
-              (click)="selectShelf(null)"
-              cdkDropList
-              [attr.data-shelf-id]="''"
-              [cdkDropListData]="docs"
-              [cdkDropListConnectedTo]="['books-grid', 'books-list']"
-              (cdkDropListDropped)="onBookDrop($event, null)"
-            >
-              @if (docs.length > 0 && getCoverImage(docs[0])) {
-                <img class="shelf-thumb" [src]="getCoverImage(docs[0])" alt="" />
-              } @else {
-                <span class="shelf-thumb-placeholder">📚</span>
-              }
-              <span class="shelf-name">Unshelved</span>
-              <span class="nav-count">{{ getUnshelvedCount(docs) }}</span>
-            </div>
-
-            @if (shelves$ | async; as shelves) {
-              @for (shelf of shelves; track shelf.id) {
-                <div
-                  class="shelf-item"
-                  [class.active]="(selectedShelfId$ | async) === shelf.id"
-                  (click)="selectShelf(shelf.id)"
-                  cdkDropList
-                  [attr.data-shelf-id]="shelf.id"
-                  [cdkDropListData]="docs"
-                  [cdkDropListConnectedTo]="['books-grid', 'books-list']"
-                  (cdkDropListDropped)="onBookDrop($event, shelf.id)"
-                >
-                  <span class="shelf-color-indicator" [style.background-color]="shelf.color"></span>
-                  <span class="shelf-name">{{ shelf.name }}</span>
-                  <span class="nav-count">{{ getShelfDocumentCount(shelf, docs) }}</span>
-                  <button
-                    class="btn-delete-shelf"
-                    (click)="deleteShelf(shelf.id, $event)"
-                    title="Delete shelf"
-                  >×</button>
-                </div>
-              }
-            }
-          }
-          <button class="btn-create-shelf" (click)="openCreateShelfModal()">
-            <span class="create-icon">✏️</span>
-            <span>Create shelf</span>
-          </button>
-        </div>
-      }
-    </div>
-  </aside>
+    <app-library-sidebar
+      [documents$]="documents$"
+      [shelves$]="shelves$"
+      [selectedShelfId$]="selectedShelfId$"
+      [shelvesExpanded]="shelvesExpanded"
+      (toggleShelves)="shelvesExpanded = $event"
+      (selectShelf)="selectShelf($event)"
+      (createShelf)="openCreateShelfModal()"
+      (deleteShelf)="deleteShelf($event.id, $event.event)"
+      (bookDropped)="onBookDrop($event.dropEvent, $event.targetShelfId)"
+    ></app-library-sidebar>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -120,15 +38,28 @@
         <!-- Toolbar -->
         <div class="toolbar">
           <div class="toolbar-left">
-            <button class="toolbar-btn" [class.active]="sortBy === 'recent'" (click)="sortBy = 'recent'">
-              <span class="toolbar-icon">≡</span>
-              Recent
-              <span class="dropdown-arrow">▾</span>
-            </button>
-            <button class="toolbar-btn" [class.active]="sortBy === 'progress'" (click)="sortBy = 'progress'">
-              Progress
-              <span class="dropdown-arrow">▾</span>
-            </button>
+            <div class="toolbar-dropdown">
+              <button class="toolbar-btn" [class.active]="sortBy === 'recent'" (click)="toggleSortMenu('recent', $event)">
+                <span class="toolbar-icon">≡</span>
+                Recent
+                <span class="dropdown-arrow">▾</span>
+              </button>
+              <div class="dropdown-menu" *ngIf="openSortMenu === 'recent'">
+                <button class="menu-item" (click)="setSort('recent', 'desc'); $event.stopPropagation()">Newest first</button>
+                <button class="menu-item" (click)="setSort('recent', 'asc'); $event.stopPropagation()">Oldest first</button>
+              </div>
+            </div>
+
+            <div class="toolbar-dropdown">
+              <button class="toolbar-btn" [class.active]="sortBy === 'progress'" (click)="toggleSortMenu('progress', $event)">
+                Progress
+                <span class="dropdown-arrow">▾</span>
+              </button>
+              <div class="dropdown-menu" *ngIf="openSortMenu === 'progress'">
+                <button class="menu-item" (click)="setSort('progress', 'desc'); $event.stopPropagation()">Highest progress</button>
+                <button class="menu-item" (click)="setSort('progress', 'asc'); $event.stopPropagation()">Lowest progress</button>
+              </div>
+            </div>
           </div>
           <div class="toolbar-right">
             <div class="view-toggle">
@@ -143,53 +74,17 @@
         @if (viewMode === 'grid') {
           <div class="books-grid" cdkDropList id="books-grid" [cdkDropListData]="documents" (cdkDropListDropped)="onMainListDropped($event)" cdkDropListGroup>
             @for (doc of documents; track doc.id) {
-              <div
-                class="book-card"
-                [class.menu-open]="openMenuId === doc.id"
-                (click)="openDocument(doc.id)"
-                cdkDrag
-                [cdkDragData]="doc.id"
-                (cdkDragStarted)="onDragStarted(doc.id)"
-                (cdkDragEnded)="onDragEnded(doc.id)"
-              >
-                <button class="drag-handle" cdkDragHandle (click)="$event.stopPropagation()" title="Drag to shelf">⠿</button>
-                <div class="book-cover-wrapper">
-                  @if (getCoverImage(doc)) {
-                    <img class="book-cover-img" [src]="getCoverImage(doc)" [alt]="doc.title" />
-                  } @else {
-                    <div class="book-cover-fallback">
-                      <span class="fallback-icon">{{ doc.type === 'epub' ? '📖' : '📄' }}</span>
-                      <span class="fallback-title">{{ doc.title }}</span>
-                    </div>
-                  }
-                  @if (doc.readingProgressPercent || (doc.currentPage && doc.totalPages)) {
-                    <div class="cover-progress">
-                      <div class="cover-progress-fill" [style.width.%]="getProgress(doc)"></div>
-                    </div>
-                  }
-                </div>
-                <div class="book-meta">
-                  <span class="book-title">{{ doc.title }}</span>
-                  <span class="book-author">{{ getAuthor(doc) }}</span>
-                </div>
-                <button class="btn-more" (click)="toggleMenu(doc.id, $event)" title="More options">⋮</button>
-
-                <!-- Context Menu -->
-                @if (openMenuId === doc.id) {
-                  <div class="context-menu">
-                    <button class="menu-item" (click)="openEditModal(doc, $event)">
-                      <span>✏️</span> Edit details
-                    </button>
-                    <button class="menu-item" (click)="fetchMetadata(doc, $event)">
-                      <span>🔄</span> Fetch metadata
-                    </button>
-                    <div class="menu-divider"></div>
-                    <button class="menu-item menu-item-danger" (click)="deleteDocument(doc.id); $event.stopPropagation()">
-                      <span>🗑️</span> Delete
-                    </button>
-                  </div>
-                }
-              </div>
+              <app-book-card
+                [doc]="doc"
+                [openMenuId]="openMenuId"
+                (open)="openDocument($event)"
+                (toggleMenu)="toggleMenu($event.id, $event.event)"
+                (edit)="openEditModal($event.doc, $event.event)"
+                (fetchMetadata)="fetchMetadata($event.doc, $event.event)"
+                (delete)="deleteDocument($event)"
+                (dragStarted)="onDragStarted($event)"
+                (dragEnded)="onDragEnded($event)"
+              ></app-book-card>
             }
           </div>
         }
@@ -233,9 +128,9 @@
                     <button class="menu-item" (click)="openEditModal(doc, $event)">
                       <span>✏️</span> Edit details
                     </button>
-                    <button class="menu-item" (click)="fetchMetadata(doc, $event)">
+                    <!-- <button class="menu-item" (click)="fetchMetadata(doc, $event)">
                       <span>🔄</span> Fetch metadata
-                    </button>
+                    </button> -->
                     <div class="menu-divider"></div>
                     <button class="menu-item menu-item-danger" (click)="deleteDocument(doc.id); $event.stopPropagation()">
                       <span>🗑️</span> Delete

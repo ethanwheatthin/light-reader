@@ -41,17 +41,14 @@
 - Pinch to zoom
 - Two-finger scroll
 - Custom gesture mappings
-- Keyboard shortcuts (arrows, space, etc.)
 
 ## Phase 3: Organization & Library Management
 
 ### Collections & Smart Folders
-- Create custom collections/shelves
 - Auto-organize by genre, author, read/unread
 - Tags and labels system
 - Favorites/starred books
 - Reading lists (To Read, Currently Reading, Finished)
-- Drag-and-drop organization
 
 ### Metadata Management
 - Auto-fetch book metadata (title, author, cover, description)
@@ -70,10 +67,10 @@
 
 ### Import/Export Options
 - Bulk upload multiple files
-- Import from cloud storage (Google Drive, Dropbox)
 - Export library metadata
 - Backup and restore functionality
 - Import from Calibre, Kindle, etc.
+- Import from cloud storage (Google Drive, Dropbox)
 
 ## Phase 4: Social & Collaboration
 

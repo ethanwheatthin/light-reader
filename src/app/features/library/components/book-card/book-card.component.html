@@ -1,0 +1,46 @@
+<div
+  class="book-card"
+  [class.menu-open]="openMenuId === doc.id"
+  (click)="openDoc()"
+  cdkDrag
+  [cdkDragData]="doc.id"
+  (cdkDragStarted)="started()"
+  (cdkDragEnded)="ended()"
+>
+  <button class="drag-handle" cdkDragHandle (click)="$event.stopPropagation()" title="Drag to shelf">⠿</button>
+  <div class="book-cover-wrapper">
+    @if (doc.metadata?.coverUrl) {
+      <img class="book-cover-img" [src]="doc.metadata?.coverUrl" [alt]="doc.title" />
+    } @else {
+      <div class="book-cover-fallback">
+        <span class="fallback-icon">{{ doc.type === 'epub' ? '📖' : '📄' }}</span>
+        <span class="fallback-title">{{ doc.title }}</span>
+      </div>
+    }
+    @if (doc.readingProgressPercent || (doc.currentPage && doc.totalPages)) {
+      <div class="cover-progress">
+        <div class="cover-progress-fill" [style.width.%]="progress(doc)"></div>
+      </div>
+    }
+  </div>
+  <div class="book-meta">
+    <span class="book-title">{{ doc.title }}</span>
+    <span class="book-author">{{ doc.metadata?.author || 'Unknown Author' }}</span>
+  </div>
+  <button class="btn-more" (click)="onToggleMenu($event)" title="More options">⋮</button>
+
+  @if (openMenuId === doc.id) {
+    <div class="context-menu">
+      <button class="menu-item" (click)="onEdit($event)">
+        <span>✏️</span> Edit details
+      </button>
+      <!-- <button class="menu-item" (click)="onFetch($event)">
+        <span>🔄</span> Fetch metadata
+      </button> -->
+      <div class="menu-divider"></div>
+      <button class="menu-item menu-item-danger" (click)="onDelete($event)">
+        <span>🗑️</span> Delete
+      </button>
+    </div>
+  }
+</div>
