@@ -80,6 +80,10 @@ export class LibraryComponent implements OnInit, OnDestroy {
   
   private searchQuery$ = new BehaviorSubject<string>('');
 
+  // File upload drag-and-drop zone
+  fileDragOver = false;
+  private fileDragCounter = 0;
+
   // Runtime caches used for drag-drop fallback
   private isDragging = false;
   private lastPointerX = 0;
@@ -409,5 +413,51 @@ export class LibraryComponent implements OnInit, OnDestroy {
     // Currently we don't allow reordering in the main list; drops here are no-ops.
     // Future: implement reordering via DocumentsActions.updateOrder
     return;
+  }
+
+  // ---- File upload drop zone ----
+
+  onFileDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+  }
+
+  onFileDragEnter(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.fileDragCounter++;
+    if (event.dataTransfer?.types?.includes('Files')) {
+      this.fileDragOver = true;
+    }
+  }
+
+  onFileDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.fileDragCounter--;
+    if (this.fileDragCounter <= 0) {
+      this.fileDragCounter = 0;
+      this.fileDragOver = false;
+    }
+  }
+
+  onFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.fileDragOver = false;
+    this.fileDragCounter = 0;
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const accepted = Array.from(files).filter(
+        f => f.name.endsWith('.epub') || f.name.endsWith('.pdf')
+      );
+      if (accepted.length > 0) {
+        this.store.dispatch(DocumentsActions.uploadDocuments({ files: accepted }));
+      }
+    }
   }
 }

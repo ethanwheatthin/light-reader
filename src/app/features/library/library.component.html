@@ -21,7 +21,24 @@
     ></app-library-sidebar>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main
+      class="main-content"
+      [class.file-drag-over]="fileDragOver"
+      (dragover)="onFileDragOver($event)"
+      (dragenter)="onFileDragEnter($event)"
+      (dragleave)="onFileDragLeave($event)"
+      (drop)="onFileDrop($event)"
+    >
+      <!-- Drop zone overlay -->
+      @if (fileDragOver) {
+        <div class="drop-zone-overlay">
+          <div class="drop-zone-content">
+            <span class="drop-zone-icon">📂</span>
+            <p class="drop-zone-text">Drop EPUB or PDF files here</p>
+          </div>
+        </div>
+      }
+
       @if (loading$ | async) {
       <div class="loading-state">
         <div class="loading-spinner"></div>
