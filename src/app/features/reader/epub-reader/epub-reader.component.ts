@@ -337,8 +337,9 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
       this.updateLocation(location);
     });
 
-    // Attach keyboard listeners to the epub iframe
+    // Attach keyboard listeners to the epub iframe (and re-attach on page turns)
     this.attachIframeKeyboardListeners();
+    this.rendition.on('rendered', this.keyboardRenderedHandler);
 
     // Attach touch swipe listeners to the epub iframe (and re-attach on page turns)
     this.attachIframeSwipeListeners();
@@ -362,6 +363,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     }
     if (this.rendition) {
       this.accessibility.destroy();
+      this.rendition.off('rendered', this.keyboardRenderedHandler);
       this.rendition.off('rendered', this.swipeRenderedHandler);
       this.detachIframeSwipeListeners();
       this.rendition.destroy();
@@ -1329,6 +1331,14 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.attachIframeSwipeListeners();
   };
 
+  /**
+   * Re-attach keyboard listeners each time epub.js renders a new section
+   * (the iframe content is replaced on page turns).
+   */
+  private keyboardRenderedHandler = () => {
+    this.attachIframeKeyboardListeners();
+  };
+
   // ---------------------------------------------------------------------------
   // Rendition recreation (for flow/spread changes)
   // ---------------------------------------------------------------------------
@@ -1394,6 +1404,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
 
     // Re-attach keyboard listeners to the new iframe
     this.attachIframeKeyboardListeners();
+    this.rendition.on('rendered', this.keyboardRenderedHandler);
 
     // Re-attach swipe listeners to the new iframe
     this.attachIframeSwipeListeners();

@@ -127,7 +127,7 @@ export class UnifiedSettingsPanelComponent {
     { label: 'One Page', value: 'one-page', icon: 'one-page' },
   ];
 
-  // --- Dragging state ---
+  // --- Dragging state (desktop only) ---
   isDragging = false;
   panelX = signal<number | null>(null);
   panelY = signal<number | null>(null);
@@ -148,6 +148,17 @@ export class UnifiedSettingsPanelComponent {
     document.removeEventListener('mouseup', this.boundOnDragEnd);
     document.removeEventListener('touchmove', this.boundOnDragMove);
     document.removeEventListener('touchend', this.boundOnDragEnd);
+  }
+
+  /** Label for the panel header based on active tab */
+  get panelTitle(): string {
+    switch (this.activeTab()) {
+      case 'settings': return 'Display options';
+      case 'chapters': return 'Table of contents';
+      case 'bookmarks': return 'Bookmarks';
+      case 'accessibility': return 'Accessibility';
+      default: return 'Display options';
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -224,6 +235,17 @@ export class UnifiedSettingsPanelComponent {
   // ---------------------------------------------------------------------------
   // Settings controls
   // ---------------------------------------------------------------------------
+
+  /** Toggle between dark and light theme */
+  toggleDarkTheme(): void {
+    const newTheme = this.settings.theme === 'dark' ? 'light' : 'dark';
+    this.emitSettings({ ...this.settings, theme: newTheme });
+  }
+
+  /** Whether dark theme is currently active */
+  get isDarkTheme(): boolean {
+    return this.settings.theme === 'dark';
+  }
 
   increaseFontSize(): void {
     const newSize = this.settings.fontSize + FONT_SIZE_STEP;
