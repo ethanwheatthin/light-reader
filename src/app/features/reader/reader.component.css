@@ -2,100 +2,20 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+  background: #1a1a1a;
 }
 
-.reader-header {
-  background: #f8f9fa;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.back-btn {
-  padding: 0.5rem 1rem;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.back-btn:hover {
-  background: #5a6268;
-}
-
-.reader-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.focus-mode-badge {
-  font-size: 0.75rem;
-  background: rgba(147, 51, 234, 0.15);
-  color: #9333ea;
-  padding: 0.35rem 0.75rem;
-  border-radius: 1rem;
-  font-weight: 600;
-  white-space: nowrap;
-  border: 1px solid rgba(147, 51, 234, 0.3);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.focus-mode-badge:hover {
-  background: rgba(147, 51, 234, 0.25);
-  transform: scale(1.05);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-/* Focus mode: hide header and go fullscreen */
-.reader-header {
-  transition: transform 0.35s ease, opacity 0.35s ease;
-}
-
-.reader-header.header-hidden {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  width: 100%;
-  z-index: 10;
-}
-
-.reader-container.fullscreen-focus {
-  /* Let the reader component fill the space previously occupied by header */
-}
-
-/* Ensure the reader component always fills remaining space */
-app-epub-reader,
-app-pdf-reader {
+/* Ensure the reader component always fills the space */
+app-epub-reader {
   flex: 1;
   min-height: 0;
 }
 
-.reader-container.fullscreen-focus app-epub-reader,
-.reader-container.fullscreen-focus app-pdf-reader {
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
-}
-
-@media (max-width: 768px) {
-  .reader-header {
-    padding: 0.75rem 1rem;
-  }
-  
-  .reader-header h2 {
-    font-size: 1.2rem;
-  }
-  
-  .focus-mode-badge {
-    font-size: 0.7rem;
-    padding: 0.3rem 0.6rem;
-  }
+  color: #e8eaed;
+  font-size: 1.125rem;
 }

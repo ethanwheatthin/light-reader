@@ -147,7 +147,7 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   lineHeight: 1.6,
   fontFamily: 'Georgia',
   theme: 'light',
-  flowMode: 'paginated',
+  flowMode: 'scrolled',
   spreadMode: 'none',
   focusMode: false,
   followMode: false,

@@ -1,12 +1,12 @@
 import { Component, Input, Output, EventEmitter, inject, OnInit, OnDestroy, ElementRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import ePub from 'epubjs';
 import * as pdfjsLib from 'pdfjs-dist';
 import { IndexDBService } from '../../../core/services/indexdb.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
-import { ReadingProgressComponent } from './reading-progress/reading-progress.component';
 import { UnifiedSettingsPanelComponent, SettingsState } from './unified-settings-panel/unified-settings-panel.component';
 import {
   selectSelectedDocumentBookmarks,
@@ -34,7 +34,7 @@ const LOCATIONS_CACHE_PREFIX = 'epub-locations-';
 @Component({
   selector: 'app-epub-reader',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReadingProgressComponent, UnifiedSettingsPanelComponent],
+  imports: [CommonModule, FormsModule, UnifiedSettingsPanelComponent],
   providers: [EpubReaderSettingsService, EpubAccessibilityService, EpubFollowModeService],
   templateUrl: './epub-reader.component.html',
   styleUrl: './epub-reader.component.css'
@@ -47,12 +47,19 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   @ViewChild('zoomWrapper', { static: true }) zoomWrapper!: ElementRef;
 
   private store = inject(Store);
+  private router = inject(Router);
   private indexDB = inject(IndexDBService);
   protected settings = inject(EpubReaderSettingsService);
   private accessibility = inject(EpubAccessibilityService);
   private followModeService = inject(EpubFollowModeService);
   private book: any;
   private rendition: any;
+
+  // --- Document title for display ---
+  documentTitle = '';
+
+  // --- Fullscreen state ---
+  isFullscreen = signal<boolean>(false);
 
   // --- PDF-specific state ---
   private pdfDoc: any;
@@ -177,8 +184,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
 
     // Load saved page or start at page 1
     const metadata = await this.indexDB.getMetadata(this.documentId);
-    if (metadata?.currentPage && metadata.currentPage >= 1) {
-      this.pdfCurrentPage = metadata.currentPage;
+    if (metadata) {
+      this.documentTitle = metadata.title || 'PDF Document';
+      if (metadata.currentPage && metadata.currentPage >= 1) {
+        this.pdfCurrentPage = metadata.currentPage;
+      }
     }
 
     await this.renderPdfPage(this.pdfCurrentPage);
@@ -295,8 +305,13 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
 
     // Resume from saved position if available
     const metadata = await this.indexDB.getMetadata(this.documentId);
-    if (metadata?.currentCfi) {
-      await this.rendition.display(metadata.currentCfi);
+    if (metadata) {
+      this.documentTitle = metadata.title || 'EPUB Document';
+      if (metadata.currentCfi) {
+        await this.rendition.display(metadata.currentCfi);
+      } else {
+        await this.rendition.display();
+      }
     } else {
       await this.rendition.display();
     }
@@ -407,6 +422,59 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
 
   togglePageInfo(): void {
     this.showProgress.update(v => !v);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation and UI controls
+  // ---------------------------------------------------------------------------
+
+  goBack(): void {
+    this.router.navigate(['/library']);
+  }
+
+  toggleFullscreen(): void {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        this.isFullscreen.set(true);
+      }).catch(() => {
+        console.warn('Could not enter fullscreen mode');
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        this.isFullscreen.set(false);
+      }).catch(() => {
+        console.warn('Could not exit fullscreen mode');
+      });
+    }
+  }
+
+  switchToChaptersTab(): void {
+    // The panel handles the tab state internally, but we ensure it opens to chapters
+    if (!this.panelOpen()) {
+      this.panelOpen.set(true);
+    }
+  }
+
+  onProgressSliderChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const percent = parseInt(target.value, 10);
+    
+    if (this.isPdf && this.pdfTotalPages > 0) {
+      // For PDF: navigate to the page corresponding to this percentage
+      const targetPage = Math.max(1, Math.round((percent / 100) * this.pdfTotalPages));
+      this.pdfCurrentPage = targetPage;
+      this.renderPdfPage(this.pdfCurrentPage);
+      this.updatePdfLocation();
+    } else if (this.book && this.locationsReady) {
+      // For EPUB: navigate to the CFI corresponding to this percentage
+      const locations = this.book.locations;
+      if (locations && locations.length()) {
+        const cfi = locations.cfiFromPercentage(percent / 100);
+        if (cfi) {
+          this.rendition.display(cfi);
+        }
+      }
+    }
   }
 
   onViewerClick(): void {
@@ -1308,15 +1376,16 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     // Re-register themes
     this.registerThemes();
 
-    // Apply all settings
-    this.applyAllSettings();
-
-    // Restore position
+    // Restore position — display() must be called before applyAllSettings()
+    // because epub.js initialises its internal manager during display().
     if (currentCfi) {
       await this.rendition.display(currentCfi);
     } else {
       await this.rendition.display();
     }
+
+    // Apply all settings now that the rendition manager is ready
+    this.applyAllSettings();
 
     // Re-attach location tracking
     this.rendition.on('relocated', (location: any) => {

@@ -3,12 +3,90 @@
   <div class="sr-only" aria-live="polite" aria-atomic="true" role="status">
     {{ currentLocation }}
   </div>
-  <!-- Reading progress bar -->
-  <app-reading-progress 
-    [progress]="readingProgress$ | async" 
-    [theme]="theme()"
-    [class.hidden-in-focus]="focusMode()">
-  </app-reading-progress>
+
+  <!-- Top bar: Google Books style header -->
+  <header class="reader-top-bar" [class.hidden-in-focus]="focusMode()" [class.focus-temporary-show]="focusModeControlsVisible()">
+    <!-- Back button -->
+    <button class="top-bar-btn back-btn" (click)="goBack()" aria-label="Back to library" title="Back to Library">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    
+    <!-- Title and page count -->
+    <div class="top-bar-title-area">
+      <span class="top-bar-title">{{ documentTitle }}</span>
+      <span class="top-bar-page-count">{{ currentLocation }}</span>
+    </div>
+    
+    <!-- Right side icons -->
+    <div class="top-bar-actions">
+      <!-- Fullscreen toggle -->
+      <button class="top-bar-btn" (click)="toggleFullscreen()" [attr.aria-label]="isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'" [title]="isFullscreen() ? 'Exit fullscreen' : 'Fullscreen'">
+        @if (isFullscreen()) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+          </svg>
+        } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+        }
+      </button>
+      
+      <!-- Search (future feature placeholder) -->
+      <button class="top-bar-btn" disabled aria-label="Search" title="Search (coming soon)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+      </button>
+      
+      <!-- Settings panel toggle -->
+      <button class="top-bar-btn" [class.active]="panelOpen()" (click)="togglePanel()" [attr.aria-expanded]="panelOpen()" aria-label="Display options" title="Display options">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      
+      <!-- Chapters/TOC -->
+      @if (!isPdf) {
+        <button class="top-bar-btn" (click)="togglePanel(); switchToChaptersTab()" aria-label="Table of contents" title="Chapters">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </button>
+      }
+      
+      <!-- Bookmark toggle -->
+      <button 
+        class="top-bar-btn" 
+        [class.bookmarked]="isCurrentLocationBookmarked()"
+        (click)="toggleBookmarkAtCurrentLocation()"
+        [attr.aria-label]="isCurrentLocationBookmarked() ? 'Remove bookmark' : 'Add bookmark'"
+        [title]="isCurrentLocationBookmarked() ? 'Remove bookmark' : 'Add bookmark'">
+        @if (isCurrentLocationBookmarked()) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+        } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+        }
+      </button>
+      
+      <!-- Help (placeholder) -->
+      <button class="top-bar-btn" disabled aria-label="Help" title="Help (coming soon)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </button>
+    </div>
+  </header>
 
   <!-- Unified settings panel -->
   <app-unified-settings-panel
@@ -30,57 +108,46 @@
     (bookmarkRemove)="removeBookmark($event)">
   </app-unified-settings-panel>
 
+  <!-- Main viewer area -->
   <div #zoomWrapper class="zoom-wrapper" [class.pdf-scroll-wrapper]="isPdf"
     (click)="onViewerClick()"
     (touchstart)="onSwipeTouchStart($event)"
     (touchend)="onSwipeTouchEnd($event)">
     <div #viewer class="epub-viewer" [class.pdf-viewer]="isPdf" role="document" [attr.aria-label]="isPdf ? 'PDF content' : 'Book content'"></div>
   </div>
-  
-  <!-- Top bar: navigation + settings toggle -->
-  <nav class="reader-controls" [class.hidden-in-focus]="focusMode()" [class.focus-temporary-show]="focusModeControlsVisible()" aria-label="Reader navigation">
-    <button
-      class="bookmark-toggle"
-      (click)="toggleBookmarkAtCurrentLocation()"
-      [class.bookmarked]="isCurrentLocationBookmarked()"
-      [attr.aria-label]="isCurrentLocationBookmarked() ? 'Remove bookmark' : 'Add bookmark'"
-      title="Toggle bookmark">
-      {{ isCurrentLocationBookmarked() ? '🔖' : '🏷️' }}
-    </button>
 
-    <button (click)="prevPage()" [disabled]="!canGoPrev" aria-label="Previous page">
-      {{'<'}}
-
-    </button>
-    <span
-      class="page-info"
-      (click)="togglePageInfo()"
-      title="Click to toggle progress">
-      @if (showProgress()) {
-        {{ (readingProgress$ | async) ?? 0 }}% complete
-      } @else {
-        {{ currentLocation }}
-      }
-    </span>
+  <!-- Bottom bar: progress slider and page navigation -->
+  <footer class="reader-bottom-bar" [class.hidden-in-focus]="focusMode()" [class.focus-temporary-show]="focusModeControlsVisible()">
+    <!-- Reading progress bar/slider -->
+    <div class="progress-slider-container">
+      <input 
+        type="range" 
+        class="progress-slider"
+        [min]="0" 
+        [max]="100" 
+        [value]="(readingProgress$ | async) ?? 0"
+        (input)="onProgressSliderChange($event)"
+        aria-label="Reading progress">
+      <div class="progress-slider-fill" [style.width.%]="(readingProgress$ | async) ?? 0"></div>
+    </div>
     
-    
-    
-    <button (click)="nextPage()" [disabled]="!canGoNext" aria-label="Next page">{{'>'}}</button>
-
-    @if (estimatedTimeRemaining$ | async; as eta) {
-      <span class="eta-badge" title="Estimated time remaining">{{ eta }}</span>
-    }
-
-    <!-- Settings button -->
-    <button
-      class="panel-toggle"
-      (click)="togglePanel()"
-      [attr.aria-expanded]="panelOpen()"
-      aria-label="Open settings panel"
-      title="Settings & More">
-      ⚙️
-    </button>
-  </nav>
+    <!-- Page navigation -->
+    <div class="bottom-bar-nav">
+      <button class="nav-btn prev-btn" (click)="prevPage()" [disabled]="!canGoPrev" aria-label="Previous page">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      
+      <span class="bottom-bar-page-info">{{ currentLocation }}</span>
+      
+      <button class="nav-btn next-btn" (click)="nextPage()" [disabled]="!canGoNext" aria-label="Next page">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
+    </div>
+  </footer>
 
   <!-- Follow mode indicator -->
   @if (followMode()) {

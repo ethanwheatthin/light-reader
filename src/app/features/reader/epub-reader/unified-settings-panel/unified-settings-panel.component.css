@@ -591,6 +591,70 @@
   font-weight: 600;
 }
 
+/* Toggle Switch (Vertical Scroll) */
+.toggle-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.toggle-switch-row .section-label {
+  margin-bottom: 0;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-switch-track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--button-bg, #ccc);
+  border-radius: 14px;
+  transition: background 0.2s ease;
+  border: 2px solid var(--panel-border, #ddd);
+}
+
+.toggle-switch.active .toggle-switch-track {
+  background: var(--accent-color, #007bff);
+  border-color: var(--accent-color, #007bff);
+}
+
+.toggle-switch-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.toggle-switch.active .toggle-switch-thumb {
+  transform: translateX(24px);
+}
+
+.toggle-switch:hover .toggle-switch-track {
+  border-color: var(--accent-color, #007bff);
+}
+
+.toggle-switch:focus-visible {
+  outline: 2px solid var(--accent-color, #007bff);
+  outline-offset: 2px;
+  border-radius: 14px;
+}
+
 /* Toggle options (Focus Mode, Follow Mode) */
 .toggle-options {
   display: flex;

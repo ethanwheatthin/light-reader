@@ -275,26 +275,21 @@
           <!-- Reading Modes Section -->
           <div class="settings-divider"></div>
           
-          <!-- Flow Mode (Paginated vs Scroll) - EPUB only -->
+          <!-- Vertical Scroll Toggle - EPUB only -->
           @if (!isPdf) {
           <div class="settings-section">
-            <span class="section-label">Reading Mode</span>
-            <div class="mode-buttons" role="radiogroup" aria-label="Reading flow mode">
+            <div class="toggle-switch-row">
+              <span class="section-label">Vertical scroll</span>
               <button
-                class="mode-btn"
-                [class.selected]="settings.flowMode === 'paginated'"
-                (click)="updateFlowMode('paginated')"
-                [attr.aria-pressed]="settings.flowMode === 'paginated'"
-                aria-label="Paginated mode">
-                📄 Paginated
-              </button>
-              <button
-                class="mode-btn"
-                [class.selected]="settings.flowMode === 'scrolled'"
-                (click)="updateFlowMode('scrolled')"
-                [attr.aria-pressed]="settings.flowMode === 'scrolled'"
-                aria-label="Scroll mode">
-                📜 Scroll
+                class="toggle-switch"
+                [class.active]="settings.flowMode === 'scrolled'"
+                (click)="updateFlowMode(settings.flowMode === 'scrolled' ? 'paginated' : 'scrolled')"
+                role="switch"
+                [attr.aria-checked]="settings.flowMode === 'scrolled'"
+                aria-label="Toggle vertical scroll mode">
+                <span class="toggle-switch-track">
+                  <span class="toggle-switch-thumb"></span>
+                </span>
               </button>
             </div>
           </div>
@@ -378,7 +373,7 @@
           </div>
           } <!-- end !isPdf for page layout -->
 
-          <!-- Toggle Modes -->
+          <!-- Toggle Modes
           <div class="settings-section">
             <span class="section-label">View Options</span>
             <div class="toggle-options">
@@ -391,7 +386,7 @@
                 <span class="toggle-icon">{{ settings.focusMode ? '✓' : '' }}</span>
                 <span class="toggle-label">Focus Mode</span>
                 <span class="toggle-hint">F</span>
-              </button>
+              </button> -->
               <!-- <button
                 class="toggle-btn"
                 [class.active]="settings.followMode"
@@ -402,8 +397,8 @@
                 <span class="toggle-label">Follow Mode</span>
                 <span class="toggle-hint">→ ←</span>
               </button> -->
-            </div>
-          </div>
+            <!-- </div>
+          </div>  -->
 
           <!-- Follow Mode Speed (only shown when follow mode is active) -->
           @if (settings.followMode) {
