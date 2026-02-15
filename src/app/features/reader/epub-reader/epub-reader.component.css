@@ -681,3 +681,35 @@
     font-size: 0.6rem;
   }
 }
+
+/* ========================================================================
+   PDF mode styles
+   ======================================================================== */
+.pdf-scroll-wrapper {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.pdf-viewer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100%;
+}
+
+.pdf-viewer .pdf-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  margin: 1rem auto;
+}
+
+.epub-container.pdf-mode[data-theme='dark'] .pdf-canvas {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.epub-container.pdf-mode[data-theme='sepia'] .pdf-canvas {
+  box-shadow: 0 2px 12px rgba(95, 75, 50, 0.2);
+}

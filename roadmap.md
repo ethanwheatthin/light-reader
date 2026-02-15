@@ -59,7 +59,6 @@
 - Duplicate detection
 
 ### Import/Export Options
-- Bulk upload multiple files
 - Export library metadata
 - Import from Calibre, Kindle, etc.
 - Import from cloud storage (Google Drive, Dropbox)

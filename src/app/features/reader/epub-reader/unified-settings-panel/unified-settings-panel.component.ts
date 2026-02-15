@@ -55,6 +55,7 @@ export type TabType = 'settings' | 'chapters' | 'bookmarks' | 'accessibility';
 export class UnifiedSettingsPanelComponent {
   @Input() isOpen = false;
   @Input() theme: ThemeOption = 'light';
+  @Input() isPdf = false;
   
   // Settings tab inputs
   @Input() settings!: SettingsState;

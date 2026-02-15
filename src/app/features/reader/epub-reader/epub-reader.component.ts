@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import ePub from 'epubjs';
+import * as pdfjsLib from 'pdfjs-dist';
 import { IndexDBService } from '../../../core/services/indexdb.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import { ReadingProgressComponent } from './reading-progress/reading-progress.component';
@@ -40,6 +41,7 @@ const LOCATIONS_CACHE_PREFIX = 'epub-locations-';
 })
 export class EpubReaderComponent implements OnInit, OnDestroy {
   @Input() documentId!: string;
+  @Input() documentType: 'epub' | 'pdf' = 'epub';
   @Output() focusModeChange = new EventEmitter<boolean>();
   @ViewChild('viewer', { static: true }) viewer!: ElementRef;
   @ViewChild('zoomWrapper', { static: true }) zoomWrapper!: ElementRef;
@@ -51,6 +53,18 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   private followModeService = inject(EpubFollowModeService);
   private book: any;
   private rendition: any;
+
+  // --- PDF-specific state ---
+  private pdfDoc: any;
+  private pdfCanvas: HTMLCanvasElement | null = null;
+  pdfCurrentPage = 1;
+  pdfTotalPages = 0;
+  private pdfScale = 1.5;
+
+  /** Whether the current document is a PDF */
+  get isPdf(): boolean {
+    return this.documentType === 'pdf';
+  }
 
   currentLocation = '';
   canGoPrev = false;
@@ -122,7 +136,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.startReadingSession();
     this.setupKeyboardShortcuts();
 
-    // Configure follow mode service
+    // Configure follow mode service (epub only, but safe to configure for both)
     this.followModeService.configure(
       () => this.nextPage(),
       () => this.settings.followMode(),
@@ -132,81 +146,194 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     try {
       const blob = await this.indexDB.getFile(this.documentId);
       if (blob) {
-        const arrayBuffer = await blob.arrayBuffer();
-        this.book = ePub(arrayBuffer);
-
-        // Wait a frame so the flex layout has computed final dimensions
-        // for the zoom-wrapper before epub.js measures the container.
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-
-        const wrapperEl = this.zoomWrapper.nativeElement as HTMLElement;
-        const padBottom = parseFloat(getComputedStyle(wrapperEl).paddingBottom) || 0;
-        const initWidth = Math.floor(wrapperEl.clientWidth) || 600;
-        const initHeight = Math.floor(wrapperEl.clientHeight - padBottom) || 400;
-
-        this.rendition = this.book.renderTo(this.viewer.nativeElement, {
-          width: initWidth,
-          height: initHeight,
-          spread: this.spreadFromPageLayout(this.settings.pageLayout()),
-          flow: this.settings.flowMode(),
-          allowScriptedContent: true,
-        });
-
-        // Wire up services that depend on the rendition
-        this.accessibility.setRendition(this.rendition);
-        this.followModeService.setRendition(this.rendition);
-
-        // Load table of contents
-        await this.loadTableOfContents();
-
-        // Register all themes before displaying so they are ready to use
-        this.registerThemes();
-
-        // Resume from saved position if available
-        const metadata = await this.indexDB.getMetadata(this.documentId);
-        if (metadata?.currentCfi) {
-          await this.rendition.display(metadata.currentCfi);
+        if (this.isPdf) {
+          await this.initPdfReader(blob);
         } else {
-          await this.rendition.display();
+          await this.initEpubReader(blob);
         }
-
-        // Apply persisted settings once the rendition is ready
-        this.applyAllSettings();
-
-        // Dispatch the previously saved progress immediately so the UI
-        // shows the last-known percentage without waiting for locations
-        if (metadata?.readingProgressPercent != null) {
-          this.store.dispatch(
-            DocumentsActions.updateReadingProgress({
-              id: this.documentId,
-              page: metadata.currentPage ?? 0,
-              cfi: metadata.currentCfi,
-              progressPercent: metadata.readingProgressPercent,
-            })
-          );
-        }
-
-        // Track location changes
-        this.rendition.on('relocated', (location: any) => {
-          this.updateLocation(location);
-        });
-
-        // Attach keyboard listeners to the epub iframe
-        this.attachIframeKeyboardListeners();
-
-        // Attach touch swipe listeners to the epub iframe (and re-attach on page turns)
-        this.attachIframeSwipeListeners();
-        this.rendition.on('rendered', this.swipeRenderedHandler);
-
-        // Try to load cached locations for instant progress, otherwise generate
-        await this.loadOrGenerateLocations();
-
-        // Set up resize observer so content flexes with screen size
-        this.setupResizeObserver();
       }
     } catch (error) {
-      console.error('Error loading EPUB:', error);
+      console.error(`Error loading ${this.documentType.toUpperCase()}:`, error);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // PDF initialization & rendering
+  // ---------------------------------------------------------------------------
+
+  private async initPdfReader(blob: Blob): Promise<void> {
+    // Set pdf.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+    const arrayBuffer = await blob.arrayBuffer();
+    this.pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    this.pdfTotalPages = this.pdfDoc.numPages;
+
+    // Create a canvas inside the viewer div
+    this.pdfCanvas = document.createElement('canvas');
+    this.pdfCanvas.classList.add('pdf-canvas');
+    this.viewer.nativeElement.appendChild(this.pdfCanvas);
+
+    // Load saved page or start at page 1
+    const metadata = await this.indexDB.getMetadata(this.documentId);
+    if (metadata?.currentPage && metadata.currentPage >= 1) {
+      this.pdfCurrentPage = metadata.currentPage;
+    }
+
+    await this.renderPdfPage(this.pdfCurrentPage);
+    this.updatePdfLocation();
+
+    // Dispatch previously saved progress
+    if (metadata?.readingProgressPercent != null) {
+      this.store.dispatch(
+        DocumentsActions.updateReadingProgress({
+          id: this.documentId,
+          page: metadata.currentPage ?? this.pdfCurrentPage,
+          progressPercent: metadata.readingProgressPercent,
+        })
+      );
+    }
+
+    // Apply host theme
+    this.applyHostTheme(this.settings.theme());
+
+    // Set up resize observer
+    this.setupResizeObserver();
+  }
+
+  private async renderPdfPage(pageNum: number): Promise<void> {
+    if (!this.pdfDoc || !this.pdfCanvas) return;
+    try {
+      const page = await this.pdfDoc.getPage(pageNum);
+
+      // Compute scale to fit the wrapper width
+      const wrapper = this.zoomWrapper?.nativeElement as HTMLElement;
+      const availableWidth = wrapper ? wrapper.clientWidth - 40 : 600; // 40px padding
+      const defaultViewport = page.getViewport({ scale: 1 });
+      const fitScale = availableWidth / defaultViewport.width;
+
+      // Apply zoom on top of fit scale
+      const zoom = this.settings.zoomLevel();
+      const zoomMultiplier = this.zoomScaleFactor(zoom);
+      this.pdfScale = fitScale * zoomMultiplier;
+
+      const viewport = page.getViewport({ scale: this.pdfScale });
+      const context = this.pdfCanvas.getContext('2d')!;
+
+      this.pdfCanvas.height = viewport.height;
+      this.pdfCanvas.width = viewport.width;
+
+      await page.render({ canvasContext: context, viewport }).promise;
+    } catch (error) {
+      console.error('Error rendering PDF page:', error);
+    }
+  }
+
+  private updatePdfLocation(): void {
+    this.currentLocation = `Page ${this.pdfCurrentPage} of ${this.pdfTotalPages}`;
+    this.canGoPrev = this.pdfCurrentPage > 1;
+    this.canGoNext = this.pdfCurrentPage < this.pdfTotalPages;
+    this.currentPageNumber = this.pdfCurrentPage;
+
+    // Calculate progress
+    const progressPercent =
+      this.pdfTotalPages > 0
+        ? Math.round((this.pdfCurrentPage / this.pdfTotalPages) * 100)
+        : 0;
+
+    // Check if current page is bookmarked
+    const pageStr = String(this.pdfCurrentPage);
+    this.bookmarks$.subscribe((bookmarks) => {
+      this.isCurrentLocationBookmarked.set(bookmarks.some((b) => b.location === pageStr));
+    }).unsubscribe();
+
+    // Save progress to store
+    this.store.dispatch(
+      DocumentsActions.updateReadingProgress({
+        id: this.documentId,
+        page: this.pdfCurrentPage,
+        progressPercent,
+      })
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // EPUB initialization
+  // ---------------------------------------------------------------------------
+
+  private async initEpubReader(blob: Blob): Promise<void> {
+    const arrayBuffer = await blob.arrayBuffer();
+    this.book = ePub(arrayBuffer);
+
+    // Wait a frame so the flex layout has computed final dimensions
+    // for the zoom-wrapper before epub.js measures the container.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    const wrapperEl = this.zoomWrapper.nativeElement as HTMLElement;
+    const padBottom = parseFloat(getComputedStyle(wrapperEl).paddingBottom) || 0;
+    const initWidth = Math.floor(wrapperEl.clientWidth) || 600;
+    const initHeight = Math.floor(wrapperEl.clientHeight - padBottom) || 400;
+
+    this.rendition = this.book.renderTo(this.viewer.nativeElement, {
+      width: initWidth,
+      height: initHeight,
+      spread: this.spreadFromPageLayout(this.settings.pageLayout()),
+      flow: this.settings.flowMode(),
+      allowScriptedContent: true,
+    });
+
+    // Wire up services that depend on the rendition
+    this.accessibility.setRendition(this.rendition);
+    this.followModeService.setRendition(this.rendition);
+
+    // Load table of contents
+    await this.loadTableOfContents();
+
+    // Register all themes before displaying so they are ready to use
+    this.registerThemes();
+
+    // Resume from saved position if available
+    const metadata = await this.indexDB.getMetadata(this.documentId);
+    if (metadata?.currentCfi) {
+      await this.rendition.display(metadata.currentCfi);
+    } else {
+      await this.rendition.display();
+    }
+
+    // Apply persisted settings once the rendition is ready
+    this.applyAllSettings();
+
+    // Dispatch the previously saved progress immediately so the UI
+    // shows the last-known percentage without waiting for locations
+    if (metadata?.readingProgressPercent != null) {
+      this.store.dispatch(
+        DocumentsActions.updateReadingProgress({
+          id: this.documentId,
+          page: metadata.currentPage ?? 0,
+          cfi: metadata.currentCfi,
+          progressPercent: metadata.readingProgressPercent,
+        })
+      );
+    }
+
+    // Track location changes
+    this.rendition.on('relocated', (location: any) => {
+      this.updateLocation(location);
+    });
+
+    // Attach keyboard listeners to the epub iframe
+    this.attachIframeKeyboardListeners();
+
+    // Attach touch swipe listeners to the epub iframe (and re-attach on page turns)
+    this.attachIframeSwipeListeners();
+    this.rendition.on('rendered', this.swipeRenderedHandler);
+
+    // Try to load cached locations for instant progress, otherwise generate
+    await this.loadOrGenerateLocations();
+
+    // Set up resize observer so content flexes with screen size
+    this.setupResizeObserver();
   }
 
   ngOnDestroy(): void {
@@ -224,6 +351,10 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
       this.detachIframeSwipeListeners();
       this.rendition.destroy();
     }
+    if (this.pdfDoc) {
+      this.pdfDoc.destroy();
+      this.pdfDoc = null;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -231,13 +362,25 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   // ---------------------------------------------------------------------------
 
   async nextPage(): Promise<void> {
-    if (this.rendition) {
+    if (this.isPdf) {
+      if (this.pdfCurrentPage < this.pdfTotalPages) {
+        this.pdfCurrentPage++;
+        await this.renderPdfPage(this.pdfCurrentPage);
+        this.updatePdfLocation();
+      }
+    } else if (this.rendition) {
       await this.rendition.next();
     }
   }
 
   async prevPage(): Promise<void> {
-    if (this.rendition) {
+    if (this.isPdf) {
+      if (this.pdfCurrentPage > 1) {
+        this.pdfCurrentPage--;
+        await this.renderPdfPage(this.pdfCurrentPage);
+        this.updatePdfLocation();
+      }
+    } else if (this.rendition) {
       await this.rendition.prev();
     }
   }
@@ -327,9 +470,11 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
 
   onSettingsChange(newSettings: SettingsState): void {
     const needsRecreate =
-      this.settings.flowMode() !== newSettings.flowMode ||
-      this.settings.spreadMode() !== newSettings.spreadMode ||
-      this.settings.pageLayout() !== newSettings.pageLayout;
+      !this.isPdf && (
+        this.settings.flowMode() !== newSettings.flowMode ||
+        this.settings.spreadMode() !== newSettings.spreadMode ||
+        this.settings.pageLayout() !== newSettings.pageLayout
+      );
 
     // Detect per-feature changes before applying
     const focusModeChanged = this.settings.focusMode() !== newSettings.focusMode;
@@ -353,19 +498,26 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
       this.focusModeChange.emit(newSettings.focusMode);
     }
 
-    if (needsRecreate) {
-      this.recreateRendition();
-    } else if (this.rendition) {
-      this.rendition.themes.fontSize(`${newSettings.fontSize}px`);
-      this.rendition.themes.select(newSettings.theme);
-      this.applyLineHeightAndFont();
-    }
+    if (this.isPdf) {
+      // For PDF: only zoom and theme changes matter
+      if (zoomChanged) {
+        this.renderPdfPage(this.pdfCurrentPage);
+      }
+    } else {
+      if (needsRecreate) {
+        this.recreateRendition();
+      } else if (this.rendition) {
+        this.rendition.themes.fontSize(`${newSettings.fontSize}px`);
+        this.rendition.themes.select(newSettings.theme);
+        this.applyLineHeightAndFont();
+      }
 
-    if (zoomChanged) this.applyZoom();
-    if (letterSpacingChanged) this.accessibility.applyLetterSpacing();
-    if (bionicReadingChanged) this.accessibility.applyBionicReading();
-    if (wordHighlightingChanged) this.accessibility.applyWordHighlighting();
-    if (customPaletteChanged) this.accessibility.applyCustomColorPalette();
+      if (zoomChanged) this.applyZoom();
+      if (letterSpacingChanged) this.accessibility.applyLetterSpacing();
+      if (bionicReadingChanged) this.accessibility.applyBionicReading();
+      if (wordHighlightingChanged) this.accessibility.applyWordHighlighting();
+      if (customPaletteChanged) this.accessibility.applyCustomColorPalette();
+    }
 
     // Handle follow mode toggle or speed change
     if (followModeChanged) {
@@ -519,6 +671,12 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
    * fills the available space at the current zoom level.
    */
   private handleContainerResize(): void {
+    if (this.isPdf) {
+      // For PDF, re-render the current page at the new container size
+      this.renderPdfPage(this.pdfCurrentPage);
+      return;
+    }
+
     if (!this.rendition) return;
 
     const wrapper = this.zoomWrapper?.nativeElement as HTMLElement;
@@ -549,6 +707,12 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
    * epub.js iframe and wrap it in a scrollable container.
    */
   private applyZoom(): void {
+    // For PDF, re-render at the new zoom — canvas sizing is handled inside renderPdfPage
+    if (this.isPdf) {
+      this.renderPdfPage(this.pdfCurrentPage);
+      return;
+    }
+
     const viewer = this.viewer?.nativeElement as HTMLElement;
     const wrapper = this.zoomWrapper?.nativeElement as HTMLElement;
     if (!viewer || !wrapper) return;
@@ -678,6 +842,37 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   }
 
   toggleBookmarkAtCurrentLocation(): void {
+    if (this.isPdf) {
+      // PDF bookmarks use page number as location
+      const pageStr = String(this.pdfCurrentPage);
+      let alreadyBookmarked = false;
+      let existingBookmarkId = '';
+      this.bookmarks$.subscribe((bookmarks) => {
+        const existing = bookmarks.find((b) => b.location === pageStr);
+        if (existing) {
+          alreadyBookmarked = true;
+          existingBookmarkId = existing.id;
+        }
+      }).unsubscribe();
+
+      if (alreadyBookmarked) {
+        this.store.dispatch(
+          DocumentsActions.removeBookmark({ id: this.documentId, bookmarkId: existingBookmarkId })
+        );
+        this.isCurrentLocationBookmarked.set(false);
+      } else {
+        const bookmark: Bookmark = {
+          id: crypto.randomUUID(),
+          location: pageStr,
+          label: `Page ${this.pdfCurrentPage}`,
+          createdAt: new Date(),
+        };
+        this.store.dispatch(DocumentsActions.addBookmark({ id: this.documentId, bookmark }));
+        this.isCurrentLocationBookmarked.set(true);
+      }
+      return;
+    }
+
     if (!this.currentCfi) return;
 
     // Check if already bookmarked
@@ -709,7 +904,14 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   }
 
   jumpToBookmark(bookmark: Bookmark): void {
-    if (this.rendition) {
+    if (this.isPdf) {
+      const page = parseInt(bookmark.location, 10);
+      if (page >= 1 && page <= this.pdfTotalPages) {
+        this.pdfCurrentPage = page;
+        this.renderPdfPage(page);
+        this.updatePdfLocation();
+      }
+    } else if (this.rendition) {
       this.rendition.display(bookmark.location);
       // Panel stays open for easier navigation
     }
@@ -977,8 +1179,8 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     if (!this.swipeActive) return;
     this.swipeActive = false;
 
-    // Only handle swipe page navigation in paginated mode
-    if (this.settings.flowMode() !== 'paginated') return;
+    // Only handle swipe page navigation in paginated mode (epub) or PDF
+    if (!this.isPdf && this.settings.flowMode() !== 'paginated') return;
 
     const touch = event.changedTouches[0];
     const deltaX = touch.clientX - this.swipeTouchStartX;

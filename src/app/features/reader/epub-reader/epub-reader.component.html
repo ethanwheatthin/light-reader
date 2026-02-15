@@ -1,4 +1,4 @@
-<div class="epub-container" [attr.data-theme]="theme()" [class.focus-mode]="focusMode()" role="main" aria-label="EPUB reader">
+<div class="epub-container" [class.pdf-mode]="isPdf" [attr.data-theme]="theme()" [class.focus-mode]="focusMode()" role="main" [attr.aria-label]="isPdf ? 'PDF reader' : 'EPUB reader'">
   <!-- Screen reader live region for page announcements -->
   <div class="sr-only" aria-live="polite" aria-atomic="true" role="status">
     {{ currentLocation }}
@@ -14,6 +14,7 @@
   <app-unified-settings-panel
     [isOpen]="panelOpen()"
     [theme]="theme()"
+    [isPdf]="isPdf"
     [settings]="currentSettings"
     [chapters]="chapters()"
     [currentChapter]="currentChapterHref()"
@@ -29,11 +30,11 @@
     (bookmarkRemove)="removeBookmark($event)">
   </app-unified-settings-panel>
 
-  <div #zoomWrapper class="zoom-wrapper"
+  <div #zoomWrapper class="zoom-wrapper" [class.pdf-scroll-wrapper]="isPdf"
     (click)="onViewerClick()"
     (touchstart)="onSwipeTouchStart($event)"
     (touchend)="onSwipeTouchEnd($event)">
-    <div #viewer class="epub-viewer" role="document" aria-label="Book content"></div>
+    <div #viewer class="epub-viewer" [class.pdf-viewer]="isPdf" role="document" [attr.aria-label]="isPdf ? 'PDF content' : 'Book content'"></div>
   </div>
   
   <!-- Top bar: navigation + settings toggle -->

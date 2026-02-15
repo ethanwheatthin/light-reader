@@ -15,14 +15,11 @@
   </div>
   
   @if (document$ | async; as doc) {
-    @if (doc.type === 'epub') {
-      <app-epub-reader 
-        [documentId]="doc.id"
-        (focusModeChange)="onFocusModeChange($event)">
-      </app-epub-reader>
-    } @else {
-      <app-pdf-reader [documentId]="doc.id"></app-pdf-reader>
-    }
+    <app-epub-reader 
+      [documentId]="doc.id"
+      [documentType]="doc.type"
+      (focusModeChange)="onFocusModeChange($event)">
+    </app-epub-reader>
   } @else {
     <p>Loading document...</p>
   }

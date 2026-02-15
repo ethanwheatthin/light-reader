@@ -51,6 +51,7 @@
         aria-label="Reader settings">
         ⚙️ Settings
       </button>
+      @if (!isPdf) {
       <button
         class="tab-button"
         [class.active]="activeTab() === 'chapters'"
@@ -60,6 +61,7 @@
         aria-label="Table of contents">
         📖 Chapters
       </button>
+      }
       <button
         class="tab-button"
         [class.active]="activeTab() === 'bookmarks'"
@@ -69,6 +71,7 @@
         aria-label="Bookmarks and progress">
         🔖 Bookmarks
       </button>
+      @if (!isPdf) {
       <button
         class="tab-button"
         [class.active]="activeTab() === 'accessibility'"
@@ -78,6 +81,7 @@
         aria-label="Accessibility options">
         ♿ Access
       </button>
+      }
     </nav>
 
     <!-- Tab content -->
@@ -87,7 +91,8 @@
       @if (activeTab() === 'settings') {
         <div class="settings-tab" role="tabpanel">
           
-          <!-- Font Family -->
+          <!-- Font Family (EPUB only) -->
+          @if (!isPdf) {
           <div class="settings-section">
             <span class="section-label">Font</span>
             <div class="font-buttons">
@@ -105,7 +110,7 @@
             </div>
           </div>
 
-          <!-- Font Size -->
+          <!-- Font Size (EPUB only) -->
           <div class="settings-section">
             <div class="control-header">
               <span class="section-label">Font Size</span>
@@ -128,7 +133,7 @@
             </div>
           </div>
 
-          <!-- Line Height -->
+          <!-- Line Height (EPUB only) -->
           <div class="settings-section">
             <div class="control-header">
               <span class="section-label">Line Height</span>
@@ -150,6 +155,7 @@
               </div>
             </div>
           </div>
+          } <!-- end !isPdf for text controls -->
 
           <!-- Theme & Color Palette -->
           <div class="settings-section">
@@ -269,7 +275,8 @@
           <!-- Reading Modes Section -->
           <div class="settings-divider"></div>
           
-          <!-- Flow Mode (Paginated vs Scroll) -->
+          <!-- Flow Mode (Paginated vs Scroll) - EPUB only -->
+          @if (!isPdf) {
           <div class="settings-section">
             <span class="section-label">Reading Mode</span>
             <div class="mode-buttons" role="radiogroup" aria-label="Reading flow mode">
@@ -291,6 +298,7 @@
               </button>
             </div>
           </div>
+          } <!-- end !isPdf for flow mode -->
 
           <!-- Zoom Level -->
           <div class="settings-section">
@@ -325,7 +333,8 @@
             </div>
           </div>
 
-          <!-- Page Layout (icon buttons) -->
+          <!-- Page Layout (icon buttons) - EPUB only -->
+          @if (!isPdf) {
           <div class="settings-section">
             <span class="section-label">Page Layout</span>
             <div class="page-layout-buttons" role="radiogroup" aria-label="Page layout mode">
@@ -367,6 +376,7 @@
               }
             </div>
           </div>
+          } <!-- end !isPdf for page layout -->
 
           <!-- Toggle Modes -->
           <div class="settings-section">

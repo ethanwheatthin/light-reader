@@ -7,12 +7,11 @@ import { Document } from '../../core/models/document.model';
 import { selectSelectedDocument } from '../../store/documents/documents.selectors';
 import { DocumentsActions } from '../../store/documents/documents.actions';
 import { EpubReaderComponent } from './epub-reader/epub-reader.component';
-import { PdfReaderComponent } from './pdf-reader/pdf-reader.component';
 
 @Component({
   selector: 'app-reader',
   standalone: true,
-  imports: [CommonModule, EpubReaderComponent, PdfReaderComponent],
+  imports: [CommonModule, EpubReaderComponent],
   templateUrl: './reader.component.html',
   styleUrl: './reader.component.css'
 })

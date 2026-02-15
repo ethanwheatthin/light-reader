@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import { IndexDBService } from '../../../core/services/indexdb.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import {
@@ -50,8 +51,8 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
   private sessionStartPage = 0;
 
   async ngOnInit(): Promise<void> {
-    // Set worker path - needs to point to the worker file in node_modules
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Set worker from bundled npm package instead of CDN
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
     this.startReadingSession();
     
     try {
