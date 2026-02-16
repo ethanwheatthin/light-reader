@@ -56,7 +56,7 @@
         📖 Chapters
       </button>
       }
-      @if (!isPdf) {
+      <!-- @if (!isPdf) {
       <button
         class="tab-button"
         [class.active]="activeTab() === 'pages'"
@@ -66,7 +66,7 @@
         aria-label="Sections and pages">
         📄 Pages
       </button>
-      }
+      } -->
       <button
         class="tab-button"
         [class.active]="activeTab() === 'bookmarks'"
@@ -504,7 +504,7 @@
       }
 
       <!-- PAGES TAB -->
-      @if (activeTab() === 'pages') {
+      <!-- @if (activeTab() === 'pages') {
         <div class="pages-tab" role="tabpanel">
           @if (spineItems.length === 0) {
             <p class="empty-message">No sections available</p>
@@ -531,7 +531,7 @@
             }
           </div>
         </div>
-      }
+      } -->
 
       <!-- BOOKMARKS TAB -->
       @if (activeTab() === 'bookmarks') {
