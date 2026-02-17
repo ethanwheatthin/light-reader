@@ -5,26 +5,26 @@ import { of, from, mergeMap } from 'rxjs';
 import { map, catchError, switchMap, withLatestFrom, tap } from 'rxjs/operators';
 import { ShelvesActions } from './shelves.actions';
 import { DocumentsActions } from '../documents/documents.actions';
-import { ShelfService } from '../../core/services/shelf.service';
-import { IndexDBService } from '../../core/services/indexdb.service';
+import { ShelfApiService } from '../../core/services/shelf-api.service';
+import { DocumentApiService } from '../../core/services/document-api.service';
 import { Shelf } from '../../core/models/shelf.model';
 import { selectAllShelves } from './shelves.selectors';
 
 @Injectable()
 export class ShelvesEffects {
   private actions$ = inject(Actions);
-  private shelfService = inject(ShelfService);
-  private indexDBService = inject(IndexDBService);
+  private shelfApi = inject(ShelfApiService);
+  private documentApi = inject(DocumentApiService);
   private store = inject(Store);
 
   loadShelves$ = createEffect(() =>
     this.actions$.pipe(
       ofType(ShelvesActions.loadShelves),
       switchMap(() =>
-        from(this.shelfService.getAllShelves()).pipe(
+        this.shelfApi.getAllShelves().pipe(
           map((shelves) => ShelvesActions.loadShelvesSuccess({ shelves })),
           catchError((error) =>
-            of(ShelvesActions.loadShelvesFailure({ error: error.message }))
+            of(ShelvesActions.loadShelvesFailure({ error: error?.message || String(error) }))
           )
         )
       )
@@ -34,23 +34,14 @@ export class ShelvesEffects {
   createShelf$ = createEffect(() =>
     this.actions$.pipe(
       ofType(ShelvesActions.createShelf),
-      withLatestFrom(this.store.select(selectAllShelves)),
-      switchMap(([action, existingShelves]) => {
-        const shelf: Shelf = {
-          id: crypto.randomUUID(),
-          name: action.name,
-          color: action.color,
-          createdAt: new Date().toISOString(),
-          documentIds: [],
-          order: existingShelves.length
-        };
-        return from(this.shelfService.saveShelf(shelf)).pipe(
-          map(() => ShelvesActions.createShelfSuccess({ shelf })),
+      switchMap((action) =>
+        this.shelfApi.createShelf({ name: action.name, color: action.color }).pipe(
+          map((shelf) => ShelvesActions.createShelfSuccess({ shelf })),
           catchError((error) =>
-            of(ShelvesActions.createShelfFailure({ error: error.message }))
+            of(ShelvesActions.createShelfFailure({ error: error?.message || String(error) }))
           )
-        );
-      })
+        )
+      )
     )
   );
 
@@ -58,19 +49,11 @@ export class ShelvesEffects {
     this.actions$.pipe(
       ofType(ShelvesActions.updateShelf),
       switchMap((action) =>
-        from(this.shelfService.getShelf(action.id)).pipe(
-          switchMap((existingShelf) => {
-            if (!existingShelf) {
-              return of(ShelvesActions.updateShelfFailure({ error: 'Shelf not found' }));
-            }
-            const updatedShelf: Shelf = { ...existingShelf, ...action.changes };
-            return from(this.shelfService.saveShelf(updatedShelf)).pipe(
-              map(() => ShelvesActions.updateShelfSuccess({ shelf: updatedShelf })),
-              catchError((error) =>
-                of(ShelvesActions.updateShelfFailure({ error: error.message }))
-              )
-            );
-          })
+        this.shelfApi.updateShelf(action.id, action.changes).pipe(
+          map((shelf) => ShelvesActions.updateShelfSuccess({ shelf })),
+          catchError((error) =>
+            of(ShelvesActions.updateShelfFailure({ error: error?.message || String(error) }))
+          )
         )
       )
     )
@@ -80,44 +63,29 @@ export class ShelvesEffects {
     this.actions$.pipe(
       ofType(ShelvesActions.deleteShelf),
       switchMap((action) =>
-        from(this.shelfService.getShelf(action.id)).pipe(
-          switchMap(async (shelf) => {
-            if (!shelf) {
-              throw new Error('Shelf not found');
-            }
-
-            // Move all documents from this shelf to "unshelved"
-            for (const documentId of shelf.documentIds) {
-              const doc = await this.indexDBService.getMetadata(documentId);
-              if (doc) {
-                doc.shelfId = null;
-                await this.indexDBService.saveMetadata(doc);
-              }
-            }
-
-            // Delete the shelf
-            await this.shelfService.deleteShelf(action.id);
-            return { id: action.id, documentIds: shelf.documentIds };
-          }),
-          mergeMap(({ id, documentIds }) => {
-            // Return array of actions to dispatch
-            const actions: any[] = [ShelvesActions.deleteShelfSuccess({ id })];
-            
-            // Add moveDocumentToShelf for each document to update the store
-            for (const documentId of documentIds) {
-              actions.push(
-                ShelvesActions.moveDocumentToShelf({
-                  documentId,
-                  fromShelfId: id,
-                  toShelfId: null
-                })
-              );
-            }
-            
-            return from(actions);
+        this.shelfApi.getShelf(action.id).pipe(
+          switchMap((shelf) => {
+            const documentIds = shelf.documentIds || [];
+            return this.shelfApi.deleteShelf(action.id).pipe(
+              mergeMap(() => {
+                // Return array of actions to dispatch
+                const actions: any[] = [ShelvesActions.deleteShelfSuccess({ id: action.id })];
+                // Move each document to unshelved in the store
+                for (const documentId of documentIds) {
+                  actions.push(
+                    ShelvesActions.moveDocumentToShelf({
+                      documentId,
+                      fromShelfId: action.id,
+                      toShelfId: null,
+                    })
+                  );
+                }
+                return from(actions);
+              })
+            );
           }),
           catchError((error) =>
-            of(ShelvesActions.deleteShelfFailure({ error: error.message }))
+            of(ShelvesActions.deleteShelfFailure({ error: error?.message || String(error) }))
           )
         )
       )
@@ -135,7 +103,7 @@ export class ShelvesEffects {
           actions.push(
             ShelvesActions.removeDocumentFromShelf({
               shelfId: action.fromShelfId,
-              documentId: action.documentId
+              documentId: action.documentId,
             })
           );
         }
@@ -145,7 +113,7 @@ export class ShelvesEffects {
           actions.push(
             ShelvesActions.addDocumentToShelf({
               shelfId: action.toShelfId,
-              documentId: action.documentId
+              documentId: action.documentId,
             })
           );
         }
@@ -158,19 +126,12 @@ export class ShelvesEffects {
   persistShelfChanges$ = createEffect(
     () =>
       this.actions$.pipe(
-        ofType(
-          ShelvesActions.addDocumentToShelf,
-          ShelvesActions.removeDocumentFromShelf
-        ),
+        ofType(ShelvesActions.addDocumentToShelf, ShelvesActions.removeDocumentFromShelf),
         withLatestFrom(this.store.select(selectAllShelves)),
         tap(([action, shelves]) => {
-          const shelfId = 'shelfId' in action ? action.shelfId : null;
-          if (shelfId) {
-            const shelf = shelves.find((s) => s.id === shelfId);
-            if (shelf) {
-              this.shelfService.saveShelf(shelf);
-            }
-          }
+          // The backend handles shelf-document relationships via document.shelfId
+          // No additional persistence needed here since moveDocumentToShelf
+          // also triggers persistDocumentShelfId$
         })
       ),
     { dispatch: false }
@@ -180,13 +141,11 @@ export class ShelvesEffects {
     () =>
       this.actions$.pipe(
         ofType(ShelvesActions.moveDocumentToShelf),
-        tap(async (action) => {
-          const doc = await this.indexDBService.getMetadata(action.documentId);
-          if (doc) {
-            doc.shelfId = action.toShelfId;
-            await this.indexDBService.saveMetadata(doc);
-          }
-        })
+        mergeMap((action) =>
+          this.documentApi
+            .updateDocument(action.documentId, { shelfId: action.toShelfId } as any)
+            .pipe(catchError(() => of(null)))
+        )
       ),
     { dispatch: false }
   );

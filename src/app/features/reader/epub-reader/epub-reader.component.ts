@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import ePub from 'epubjs';
 import * as pdfjsLib from 'pdfjs-dist';
-import { IndexDBService } from '../../../core/services/indexdb.service';
+import { firstValueFrom } from 'rxjs';
+import { DocumentApiService } from '../../../core/services/document-api.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import { UnifiedSettingsPanelComponent, SettingsState } from './unified-settings-panel/unified-settings-panel.component';
 import {
@@ -49,7 +50,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
 
   private store = inject(Store);
   private router = inject(Router);
-  private indexDB = inject(IndexDBService);
+  private documentApi = inject(DocumentApiService);
   protected settings = inject(EpubReaderSettingsService);
   private accessibility = inject(EpubAccessibilityService);
   private followModeService = inject(EpubFollowModeService);
@@ -156,7 +157,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     );
 
     try {
-      const blob = await this.indexDB.getFile(this.documentId);
+      const blob = await firstValueFrom(this.documentApi.getDocumentFile(this.documentId));
       if (blob) {
         if (this.isPdf) {
           await this.initPdfReader(blob);
@@ -188,7 +189,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.viewer.nativeElement.appendChild(this.pdfCanvas);
 
     // Load saved page or start at page 1
-    const metadata = await this.indexDB.getMetadata(this.documentId);
+    const metadata = await firstValueFrom(this.documentApi.getDocument(this.documentId));
     if (metadata) {
       this.documentTitle = metadata.title || 'PDF Document';
       if (metadata.currentPage && metadata.currentPage >= 1) {
@@ -310,7 +311,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.registerThemes();
 
     // Resume from saved position if available
-    const metadata = await this.indexDB.getMetadata(this.documentId);
+    const metadata = await firstValueFrom(this.documentApi.getDocument(this.documentId)).catch(() => null);
     if (metadata) {
       this.documentTitle = metadata.title || 'EPUB Document';
       if (metadata.currentCfi) {

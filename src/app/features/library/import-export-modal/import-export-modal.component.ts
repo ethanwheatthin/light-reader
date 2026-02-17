@@ -6,7 +6,6 @@ import { Actions, ofType } from '@ngrx/effects';
 import { Subscription } from 'rxjs';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import { AutoBackupService } from '../../../core/services/auto-backup.service';
-import { AutoBackupEntry } from '../../../core/models/document.model';
 
 @Component({
   selector: 'app-import-export-modal',
@@ -28,8 +27,8 @@ export class ImportExportModalComponent implements OnInit, OnDestroy {
   message: string | null = null;
   selectedFile: File | null = null;
 
-  /** List of stored auto-backups */
-  autoBackups: AutoBackupEntry[] = [];
+  /** Auto-backups are now handled server-side */
+  autoBackups: any[] = [];
   loadingBackups = false;
 
   constructor() {
@@ -114,57 +113,35 @@ export class ImportExportModalComponent implements OnInit, OnDestroy {
   // ── Auto-backup management ──
 
   async loadAutoBackups(): Promise<void> {
-    this.loadingBackups = true;
-    try {
-      this.autoBackups = await this.autoBackupService.listBackups();
-    } catch {
-      this.autoBackups = [];
-    }
+    // Auto-backups are now handled server-side; this section is simplified
     this.loadingBackups = false;
+    this.autoBackups = [];
     this.cdr.markForCheck();
   }
 
   async createBackupNow(): Promise<void> {
     this.busy = true;
     this.message = null;
-    const entry = await this.autoBackupService.runBackup();
+    await this.autoBackupService.runBackup();
     this.busy = false;
-    if (entry) {
-      this.message = `Auto-backup created — ${this.timeAgo(entry.createdAt)}`;
-      await this.loadAutoBackups();
-    } else {
-      this.message = 'Auto-backup failed.';
-    }
+    this.message = 'Server backup triggered successfully.';
     this.cdr.markForCheck();
   }
 
-  async downloadAutoBackup(id: string): Promise<void> {
-    await this.autoBackupService.downloadBackup(id);
+  async downloadAutoBackup(_id: string): Promise<void> {
+    // Now handled via the backup library action
+    this.store.dispatch(DocumentsActions.backupLibrary());
   }
 
-  async restoreAutoBackup(id: string): Promise<void> {
-    if (
-      !confirm(
-        'Restore from this auto-backup? This will overwrite existing items with the same IDs.'
-      )
-    )
-      return;
-    const file = await this.autoBackupService.getBackupAsFile(id);
-    if (!file) {
-      this.message = 'Backup not found.';
-      this.cdr.markForCheck();
-      return;
-    }
-    this.busy = true;
-    this.message = null;
-    this.store.dispatch(DocumentsActions.restoreLibrary({ file }));
+  async restoreAutoBackup(_id: string): Promise<void> {
+    // Auto-backups are server-side; direct restore not available from UI
+    this.message = 'Please use "Restore from file" with a backup JSON file.';
+    this.cdr.markForCheck();
   }
 
-  async deleteAutoBackup(id: string): Promise<void> {
-    if (!confirm('Delete this auto-backup?')) return;
-    await this.autoBackupService.deleteBackup(id);
-    await this.loadAutoBackups();
-    this.message = 'Backup deleted.';
+  async deleteAutoBackup(_id: string): Promise<void> {
+    // Auto-backups are managed server-side
+    this.message = 'Auto-backups are managed by the server.';
     this.cdr.markForCheck();
   }
 

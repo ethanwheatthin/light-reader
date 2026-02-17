@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
-import { IndexDBService } from '../../../core/services/indexdb.service';
+import { firstValueFrom } from 'rxjs';
+import { DocumentApiService } from '../../../core/services/document-api.service';
 import { DocumentsActions } from '../../../store/documents/documents.actions';
 import {
   selectSelectedDocumentBookmarks,
@@ -29,7 +30,7 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
   @ViewChild('pdfCanvas', { static: true }) canvas!: ElementRef<HTMLCanvasElement>;
   
   private store = inject(Store);
-  private indexDB = inject(IndexDBService);
+  private documentApi = inject(DocumentApiService);
   pdfDoc: any;
   
   currentPage = 1;
@@ -62,14 +63,14 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
     this.startReadingSession();
     
     try {
-      const blob = await this.indexDB.getFile(this.documentId);
+      const blob = await firstValueFrom(this.documentApi.getDocumentFile(this.documentId));
       if (blob) {
         const arrayBuffer = await blob.arrayBuffer();
         this.pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         this.totalPages = this.pdfDoc.numPages;
         
         // Load saved page or start at page 1
-        const metadata = await this.indexDB.getMetadata(this.documentId);
+        const metadata = await firstValueFrom(this.documentApi.getDocument(this.documentId)).catch(() => null);
         if (metadata?.currentPage) {
           this.currentPage = metadata.currentPage;
         }

@@ -1,12 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { map, mergeMap, catchError } from 'rxjs/operators';
-import { of, from } from 'rxjs';
+import { map, mergeMap, catchError, switchMap } from 'rxjs/operators';
+import { of, from, forkJoin } from 'rxjs';
 import { DocumentsActions } from './documents.actions';
-import { IndexDBService } from '../../core/services/indexdb.service';
-import { EpubService } from '../../core/services/epub.service';
-import { PdfService } from '../../core/services/pdf.service';
+import { DocumentApiService } from '../../core/services/document-api.service';
+import { BackupApiService } from '../../core/services/backup-api.service';
 import { OpenLibraryService } from '../../core/services/open-library.service';
 import { Document } from '../../core/models/document.model';
 import { ShelvesActions } from '../shelves/shelves.actions';
@@ -14,9 +13,8 @@ import { ShelvesActions } from '../shelves/shelves.actions';
 @Injectable()
 export class DocumentsEffects {
   private actions$ = inject(Actions);
-  private indexDB = inject(IndexDBService);
-  private epubService = inject(EpubService);
-  private pdfService = inject(PdfService);
+  private documentApi = inject(DocumentApiService);
+  private backupApi = inject(BackupApiService);
   private openLibraryService = inject(OpenLibraryService);
   private store = inject(Store);
 
@@ -24,10 +22,10 @@ export class DocumentsEffects {
     this.actions$.pipe(
       ofType(DocumentsActions.uploadDocument),
       mergeMap(({ file }) =>
-        from(this.processUpload(file)).pipe(
+        this.documentApi.uploadDocument(file).pipe(
           map((document) => DocumentsActions.uploadDocumentSuccess({ document })),
           catchError((error) =>
-            of(DocumentsActions.uploadDocumentFailure({ error: error.message }))
+            of(DocumentsActions.uploadDocumentFailure({ error: error?.message || String(error) }))
           )
         )
       )
@@ -39,14 +37,11 @@ export class DocumentsEffects {
     this.actions$.pipe(
       ofType(DocumentsActions.uploadDocuments),
       mergeMap(({ files }) =>
-        from(Promise.all(files.map((f) => this.processUpload(f)))).pipe(
-          mergeMap((documents) =>
-            // Save metadata for all documents
-            from(Promise.all(documents.map((d) => this.indexDB.saveMetadata(d)))).pipe(
-              map(() => DocumentsActions.uploadDocumentsSuccess({ documents }))
-            )
-          ),
-          catchError((error) => of(DocumentsActions.uploadDocumentsFailure({ error: error?.message || String(error) })))
+        forkJoin(files.map((f) => this.documentApi.uploadDocument(f))).pipe(
+          map((documents) => DocumentsActions.uploadDocumentsSuccess({ documents })),
+          catchError((error) =>
+            of(DocumentsActions.uploadDocumentsFailure({ error: error?.message || String(error) }))
+          )
         )
       )
     )
@@ -57,11 +52,9 @@ export class DocumentsEffects {
     this.actions$.pipe(
       ofType(DocumentsActions.exportMetadata),
       mergeMap(() =>
-        from(this.indexDB.getAllMetadata()).pipe(
-          map((metadata) => {
-            const json = JSON.stringify(metadata, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const filename = `library-metadata-${new Date().toISOString().slice(0,10)}.json`;
+        this.backupApi.exportMetadata().pipe(
+          map((blob) => {
+            const filename = `library-metadata-${new Date().toISOString().slice(0, 10)}.json`;
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -72,7 +65,9 @@ export class DocumentsEffects {
             URL.revokeObjectURL(url);
             return DocumentsActions.exportMetadataSuccess({ fileName: filename });
           }),
-          catchError((error) => of(DocumentsActions.exportMetadataFailure({ error: error?.message || String(error) })))
+          catchError((error) =>
+            of(DocumentsActions.exportMetadataFailure({ error: error?.message || String(error) }))
+          )
         )
       )
     )
@@ -83,9 +78,9 @@ export class DocumentsEffects {
     this.actions$.pipe(
       ofType(DocumentsActions.backupLibrary),
       mergeMap(() =>
-        from(this.indexDB.exportLibrary()).pipe(
+        this.backupApi.backupLibrary().pipe(
           map((blob) => {
-            const filename = `library-backup-${new Date().toISOString().slice(0,10)}.json`;
+            const filename = `library-backup-${new Date().toISOString().slice(0, 10)}.json`;
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -96,7 +91,9 @@ export class DocumentsEffects {
             URL.revokeObjectURL(url);
             return DocumentsActions.backupLibrarySuccess({ fileName: filename });
           }),
-          catchError((error) => of(DocumentsActions.backupLibraryFailure({ error: error?.message || String(error) })))
+          catchError((error) =>
+            of(DocumentsActions.backupLibraryFailure({ error: error?.message || String(error) }))
+          )
         )
       )
     )
@@ -108,42 +105,48 @@ export class DocumentsEffects {
       ofType(DocumentsActions.restoreLibrary),
       mergeMap(({ file }) =>
         from(this.readFileAsText(file)).pipe(
-          mergeMap(async (text) => {
-            try {
-              const payload = JSON.parse(text);
-              await this.indexDB.importLibrary(payload);
-              // reload metadata and shelves from storage so store is in sync
-              this.store.dispatch(DocumentsActions.loadDocuments());
-              this.store.dispatch(ShelvesActions.loadShelves());
-              return DocumentsActions.restoreLibrarySuccess();
-            } catch (e: any) {
-              return DocumentsActions.restoreLibraryFailure({ error: e?.message || String(e) });
-            }
+          switchMap((text) => {
+            const payload = JSON.parse(text);
+            return this.backupApi.restoreLibrary(payload).pipe(
+              switchMap(() => {
+                // Reload data from backend after restore
+                this.store.dispatch(DocumentsActions.loadDocuments());
+                this.store.dispatch(ShelvesActions.loadShelves());
+                return of(DocumentsActions.restoreLibrarySuccess());
+              }),
+              catchError((error) =>
+                of(DocumentsActions.restoreLibraryFailure({ error: error?.message || String(error) }))
+              )
+            );
           }),
-          catchError((error) => of(DocumentsActions.restoreLibraryFailure({ error: error?.message || String(error) })))
+          catchError((error) =>
+            of(DocumentsActions.restoreLibraryFailure({ error: error?.message || String(error) }))
+          )
         )
       )
     )
   );
 
-  uploadDocumentSuccess$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.uploadDocumentSuccess),
-      mergeMap(({ document }) =>
-        from(this.indexDB.saveMetadata(document)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
-        )
-      )
-    ),
-    { dispatch: false }
-  );
-
   loadDocuments$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DocumentsActions.loadDocuments),
-      mergeMap(() => from(this.loadStoredDocuments()).pipe(
-        map((documents) => DocumentsActions.loadDocumentsSuccess({ documents }))
-      ))
+      mergeMap(() =>
+        this.documentApi.getAllDocuments().pipe(
+          map((documents) =>
+            DocumentsActions.loadDocumentsSuccess({
+              documents: documents.map((doc) => ({
+                ...doc,
+                bookmarks: doc.bookmarks ?? [],
+                readingStats: doc.readingStats ?? { totalReadingTime: 0, sessions: [] },
+              })),
+            })
+          ),
+          catchError((error) => {
+            console.error('Failed to load documents from API:', error);
+            return of(DocumentsActions.loadDocumentsSuccess({ documents: [] }));
+          })
+        )
+      )
     )
   );
 
@@ -151,114 +154,124 @@ export class DocumentsEffects {
     this.actions$.pipe(
       ofType(DocumentsActions.deleteDocument),
       mergeMap(({ id }) =>
-        from(this.indexDB.deleteFile(id)).pipe(
-          map(() => DocumentsActions.deleteDocumentSuccess({ id }))
+        this.documentApi.deleteDocument(id).pipe(
+          map(() => DocumentsActions.deleteDocumentSuccess({ id })),
+          catchError((error) => {
+            console.error('Failed to delete document:', error);
+            return of(DocumentsActions.deleteDocumentSuccess({ id }));
+          })
         )
       )
     )
   );
 
-  updateReadingProgress$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.updateReadingProgress),
-      mergeMap(({ id, page, cfi, progressPercent }) =>
-        from(this.updateMetadata(id, { currentPage: page, ...(cfi ? { currentCfi: cfi } : {}), ...(progressPercent != null ? { readingProgressPercent: progressPercent } : {}) })).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  updateReadingProgress$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.updateReadingProgress),
+        mergeMap(({ id, page, cfi, progressPercent }) =>
+          this.documentApi
+            .updateReadingProgress(id, {
+              page,
+              ...(cfi ? { cfi } : {}),
+              ...(progressPercent != null ? { progressPercent } : {}),
+            })
+            .pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
   // --- Bookmark persistence ---
 
-  addBookmark$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.addBookmark),
-      mergeMap(({ id, bookmark }) =>
-        from(this.persistBookmarks(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  addBookmark$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.addBookmark),
+        mergeMap(({ id, bookmark }) =>
+          this.documentApi
+            .addBookmark(id, {
+              location: bookmark.location,
+              label: bookmark.label,
+              note: bookmark.note,
+            })
+            .pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
-  removeBookmark$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.removeBookmark),
-      mergeMap(({ id }) =>
-        from(this.persistBookmarks(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  removeBookmark$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.removeBookmark),
+        mergeMap(({ id, bookmarkId }) =>
+          this.documentApi.removeBookmark(id, bookmarkId).pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
-  updateBookmark$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.updateBookmark),
-      mergeMap(({ id }) =>
-        from(this.persistBookmarks(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  updateBookmark$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.updateBookmark),
+        mergeMap(({ id, bookmarkId, note }) =>
+          this.documentApi
+            .updateBookmark(id, bookmarkId, { note })
+            .pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
   // --- Reading session persistence ---
 
-  endReadingSession$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.endReadingSession),
-      mergeMap(({ id }) =>
-        from(this.persistReadingStats(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  endReadingSession$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.endReadingSession),
+        mergeMap(({ id, session }) =>
+          this.documentApi.addReadingSession(id, session).pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
   // --- Reading goal persistence ---
 
-  setReadingGoal$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.setReadingGoal),
-      mergeMap(({ id }) =>
-        from(this.persistReadingGoal(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  setReadingGoal$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.setReadingGoal),
+        mergeMap(({ id, goal }) =>
+          this.documentApi.setReadingGoal(id, goal).pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
-  updateReadingStreak$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.updateReadingStreak),
-      mergeMap(({ id }) =>
-        from(this.persistReadingGoal(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  updateReadingStreak$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.updateReadingStreak),
+        mergeMap(({ id }) =>
+          this.documentApi.updateReadingStreak(id).pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
   // --- Metadata actions ---
 
-  updateBookMetadata$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.updateBookMetadata),
-      mergeMap(({ id }) =>
-        from(this.persistMetadata(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  updateBookMetadata$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.updateBookMetadata),
+        mergeMap(({ id, metadata }) =>
+          this.documentApi.updateBookMetadata(id, metadata).pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
 
@@ -267,11 +280,11 @@ export class DocumentsEffects {
       ofType(DocumentsActions.fetchMetadataFromOpenLibrary),
       mergeMap(({ id, title }) =>
         this.openLibraryService.searchByTitle(title).pipe(
-          map((results) => {
+          mergeMap((results) => {
             if (results.length > 0) {
-              return DocumentsActions.fetchMetadataSuccess({ id, metadata: results[0] });
+              return of(DocumentsActions.fetchMetadataSuccess({ id, metadata: results[0] }));
             }
-            return { type: 'NO_ACTION' as const };
+            return of({ type: 'NO_ACTION' as const });
           }),
           catchError(() => of({ type: 'NO_ACTION' as const }))
         )
@@ -279,98 +292,16 @@ export class DocumentsEffects {
     )
   );
 
-  fetchMetadataSuccess$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(DocumentsActions.fetchMetadataSuccess),
-      mergeMap(({ id }) =>
-        from(this.persistMetadata(id)).pipe(
-          map(() => ({ type: 'NO_ACTION' as const }))
+  fetchMetadataSuccess$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.fetchMetadataSuccess),
+        mergeMap(({ id, metadata }) =>
+          this.documentApi.updateBookMetadata(id, metadata).pipe(catchError(() => of(null)))
         )
-      )
-    ),
+      ),
     { dispatch: false }
   );
-
-  private async processUpload(file: File): Promise<Document> {
-    const id = crypto.randomUUID();
-    const type = file.name.endsWith('.epub') ? 'epub' : 'pdf';
-    
-    let metadata: { title: string; totalPages?: number };
-    
-    if (type === 'epub') {
-      metadata = await this.epubService.extractMetadata(file);
-    } else {
-      metadata = await this.pdfService.extractMetadata(file);
-    }
-
-    const document: Document = {
-      id,
-      title: metadata.title,
-      type,
-      fileSize: file.size,
-      uploadDate: new Date(),
-      totalPages: metadata.totalPages,
-      bookmarks: [],
-      readingStats: { totalReadingTime: 0, sessions: [] },
-    };
-
-    await this.indexDB.saveFile(id, file);
-    
-    return document;
-  }
-
-  private async loadStoredDocuments(): Promise<Document[]> {
-    const docs = await this.indexDB.getAllMetadata();
-    // Migrate older documents that lack new fields
-    return docs.map((doc) => ({
-      ...doc,
-      bookmarks: doc.bookmarks ?? [],
-      readingStats: doc.readingStats ?? { totalReadingTime: 0, sessions: [] },
-    }));
-  }
-
-  private async updateMetadata(id: string, changes: Partial<Document>): Promise<void> {
-    const document = await this.indexDB.getMetadata(id);
-    if (document) {
-      Object.assign(document, changes, { lastOpened: new Date() });
-      await this.indexDB.saveMetadata(document);
-    }
-  }
-
-  private async persistBookmarks(id: string): Promise<void> {
-    // We need a small delay for the reducer to apply first
-    const document = await this.indexDB.getMetadata(id);
-    if (!document) return;
-    // Re-read from store is tricky in effects, so we update via current metadata
-    // The reducer has already updated the entity; we use selectSnapshot pattern
-    await this.syncDocumentField(id, 'bookmarks');
-  }
-
-  private async persistReadingStats(id: string): Promise<void> {
-    await this.syncDocumentField(id, 'readingStats');
-  }
-
-  private async persistReadingGoal(id: string): Promise<void> {
-    await this.syncDocumentField(id, 'readingGoal');
-  }
-
-  private async persistMetadata(id: string): Promise<void> {
-    // Persist both metadata and title so changes made via UpdateBookMetadata
-    // (which may include a title) are saved to IndexedDB.
-    return new Promise((resolve) => {
-      this.store.select((state: any) => state.documents.entities[id]).subscribe(async (entity: Document | undefined) => {
-        if (entity) {
-          const persisted = await this.indexDB.getMetadata(id);
-          if (persisted) {
-            persisted.metadata = entity.metadata;
-            persisted.title = entity.title;
-            await this.indexDB.saveMetadata(persisted);
-          }
-        }
-        resolve();
-      }).unsubscribe();
-    });
-  }
 
   private readFileAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -378,24 +309,6 @@ export class DocumentsEffects {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = (err) => reject(err);
       reader.readAsText(file);
-    });
-  }
-
-  /**
-   * Read the current entity from the store and persist the given field to IndexedDB.
-   */
-  private syncDocumentField(id: string, field: keyof Document): Promise<void> {
-    return new Promise((resolve) => {
-      this.store.select((state: any) => state.documents.entities[id]).subscribe(async (entity: Document | undefined) => {
-        if (entity) {
-          const persisted = await this.indexDB.getMetadata(id);
-          if (persisted) {
-            (persisted as any)[field] = (entity as any)[field];
-            await this.indexDB.saveMetadata(persisted);
-          }
-        }
-        resolve();
-      }).unsubscribe();
     });
   }
 }

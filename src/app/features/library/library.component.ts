@@ -184,14 +184,12 @@ export class LibraryComponent implements OnInit, OnDestroy {
   }
 
   private async triggerAutoBackup(): Promise<void> {
-    const entry = await this.autoBackupService.runBackup();
-    if (entry) {
-      this.lastBackupTime = new Date(entry.createdAt).toLocaleTimeString();
-      if (this.backupTimestamp) clearTimeout(this.backupTimestamp);
-      this.backupTimestamp = setTimeout(() => {
-        this.lastBackupTime = null;
-      }, 5000);
-    }
+    await this.autoBackupService.runBackup();
+    this.lastBackupTime = new Date().toLocaleTimeString();
+    if (this.backupTimestamp) clearTimeout(this.backupTimestamp);
+    this.backupTimestamp = setTimeout(() => {
+      this.lastBackupTime = null;
+    }, 5000);
   }
 
   onSearchChange(): void {
