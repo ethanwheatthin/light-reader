@@ -23,6 +23,7 @@
    ======================================================================== */
 .sidebar {
   width: 260px;
+  max-width: 265px;
   flex-shrink: 0;
   background: #fff;
   border-right: 1px solid #e0e0e0;
@@ -102,6 +103,7 @@
 .sidebar-section {
   margin-top: 0.75rem;
   padding: 0 0.5rem;
+  max-width: 265px;
 }
 
 .sidebar-section-header {
@@ -151,7 +153,12 @@
   cursor: pointer;
   transition: background var(--transition-fast);
   position: relative;
+  overflow: hidden;
+  max-height: 44px;
 }
+
+/* Hide CDK drag placeholder inside shelf drop targets so they don't expand */
+.shelf-item .cdk-drag-placeholder { display: none; }
 
 .shelf-item:hover {
   background: #f1f3f4;
@@ -167,10 +174,36 @@
   color: #185abc;
 }
 
-/* Drop zone highlight */
+/* Drop zone highlight — item being dragged FROM this list */
 .shelf-item.cdk-drop-list-dragging {
   background: #e8f0fe;
   box-shadow: inset 0 0 0 2px #1a73e8;
+}
+
+/* Drop zone highlight — dragged item is HOVERING over this shelf */
+.shelf-item.cdk-drop-list-receiving {
+  background: #e8f0fe;
+  box-shadow: inset 0 0 0 2px #1a73e8;
+  transform: scale(1.02);
+  transition: all 150ms ease;
+}
+
+.shelf-item.cdk-drop-list-receiving .shelf-name {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.shelf-item.cdk-drop-list-receiving .nav-count {
+  color: #1a73e8;
+}
+
+.shelf-item.cdk-drop-list-receiving .shelf-color-indicator {
+  box-shadow: 0 0 0 2px #1a73e8;
+}
+
+.shelf-item.cdk-drop-list-receiving .shelf-thumb-placeholder {
+  transform: scale(1.1);
+  transition: transform 150ms ease;
 }
 
 .shelf-color-indicator {

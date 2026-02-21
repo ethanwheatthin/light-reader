@@ -36,9 +36,8 @@
           [class.active]="(selectedShelfId$ | async) === null"
           (click)="emitSelect(null)"
           cdkDropList
-          [attr.data-shelf-id]="''"
+          id="shelf-unshelved"
           [cdkDropListData]="docs"
-          [cdkDropListConnectedTo]="['books-grid', 'books-list']"
           (cdkDropListDropped)="onDrop($event, null)"
         >
           @if (docs.length > 0 && docs[0].metadata?.coverUrl) {
@@ -58,9 +57,8 @@
                   [class.active]="(selectedShelfId$ | async) === shelf.id"
                   (click)="emitSelect(shelf.id)"
                   cdkDropList
-                  [attr.data-shelf-id]="shelf.id"
+                  [id]="'shelf-' + shelf.id"
                   [cdkDropListData]="docs"
-                  [cdkDropListConnectedTo]="['books-grid', 'books-list']"
                   (cdkDropListDropped)="onDrop($event, shelf.id)"
                 >
                   <span class="shelf-color-indicator" [style.background-color]="shelf.color"></span>

@@ -6,7 +6,7 @@
   ></app-library-top-bar>
 
   <!-- Body: Sidebar + Content -->
-  <div class="library-body">
+  <div class="library-body" cdkDropListGroup>
     <app-library-sidebar
       [documents$]="documents$"
       [shelves$]="shelves$"
@@ -96,7 +96,7 @@
 
         <!-- Books Grid -->
         @if (viewMode === 'grid') {
-          <div class="books-grid" cdkDropList id="books-grid" [cdkDropListData]="documents" (cdkDropListDropped)="onMainListDropped($event)" cdkDropListGroup>
+          <div class="books-grid" cdkDropList id="books-grid" [cdkDropListData]="documents" (cdkDropListDropped)="onMainListDropped($event)">
             @for (doc of documents; track doc.id) {
               <app-book-card
                 [doc]="doc"
@@ -115,7 +115,7 @@
 
         <!-- Books List -->
         @if (viewMode === 'list') {
-          <div class="books-list-view" cdkDropList id="books-list" [cdkDropListData]="documents" (cdkDropListDropped)="onMainListDropped($event)" cdkDropListGroup>
+          <div class="books-list-view" cdkDropList id="books-list" [cdkDropListData]="documents" (cdkDropListDropped)="onMainListDropped($event)">
             @for (doc of documents; track doc.id) {
               <div
                 class="list-row"
