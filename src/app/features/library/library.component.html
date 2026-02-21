@@ -106,6 +106,7 @@
                 (edit)="openEditModal($event.doc, $event.event)"
                 (fetchMetadata)="fetchMetadata($event.doc, $event.event)"
                 (delete)="deleteDocument($event)"
+                (download)="downloadDocument($event.doc, $event.event)"
                 (dragStarted)="onDragStarted($event)"
                 (dragEnded)="onDragEnded($event)"
               ></app-book-card>

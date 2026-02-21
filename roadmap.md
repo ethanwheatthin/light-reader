@@ -36,7 +36,6 @@
 - Extract quotes and key insights
 
 ### Gesture Controls
-- Swipe to turn pages
 - Pinch to zoom
 - Two-finger scroll
 - Custom gesture mappings
@@ -45,11 +44,6 @@
 
 ### Metadata Management
 - Auto-fetch book metadata (title, author, cover, description)
-- Edit metadata manually
-- Add custom book covers
-- ISBN lookup
-- Series tracking
-- Publication info and ratings
 
 ### Advanced Search & Filters
 - Filter by author, genre, publication year

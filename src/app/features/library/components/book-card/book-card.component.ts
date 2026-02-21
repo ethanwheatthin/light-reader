@@ -22,6 +22,7 @@ export class BookCardComponent {
   @Output() edit = new EventEmitter<{ doc: Document; event: Event }>();
   @Output() fetchMetadata = new EventEmitter<{ doc: Document; event: Event }>();
   @Output() delete = new EventEmitter<string>();
+  @Output() download = new EventEmitter<{ doc: Document; event: Event }>();
   @Output() dragStarted = new EventEmitter<string>();
   @Output() dragEnded = new EventEmitter<string>();
 
@@ -47,6 +48,11 @@ export class BookCardComponent {
   onDelete(e: Event) {
     e.stopPropagation();
     this.delete.emit(this.doc.id);
+  }
+
+  onDownload(e: Event) {
+    e.stopPropagation();
+    this.download.emit({ doc: this.doc, event: e });
   }
 
   started() {
