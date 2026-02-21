@@ -13,8 +13,7 @@ import backupRouter from './routes/backup';
 
 dotenv.config();
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
-
+const PORT = parseInt(process.env.PORT || '3030', 10);
 async function bootstrap() {
   // Initialize TypeORM connection
   try {

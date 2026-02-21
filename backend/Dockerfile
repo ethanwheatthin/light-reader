@@ -11,6 +11,6 @@ RUN npm run build
 # Create uploads directory
 RUN mkdir -p uploads
 
-EXPOSE 3000
+EXPOSE 3030
 
 CMD ["node", "dist/server.js"]

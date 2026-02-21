@@ -34,11 +34,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-libreader}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-libreader_pass}
       POSTGRES_DB: ${POSTGRES_DB:-libreader}
-      PORT: 3000
+      PORT: 3030
       FILE_STORAGE_STRATEGY: filesystem
       NODE_ENV: production
     ports:
-      - '3000:3000'
+      - '3030:3030'
     volumes:
       - uploads:/app/uploads
 
