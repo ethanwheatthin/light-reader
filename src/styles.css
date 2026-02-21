@@ -67,3 +67,49 @@ body {
   background: var(--color-primary-start);
   color: white;
 }
+
+/* ========================================================================
+   CDK Drag & Drop — Global Preview Styles
+   (Must be global because CDK renders the preview in a top-level overlay)
+   ======================================================================== */
+.cdk-drag-preview.drag-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  max-width: 220px;
+  cursor: grabbing;
+  margin-top: -20px;
+}
+
+.cdk-drag-preview .drag-preview-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.cdk-drag-preview .drag-preview-title {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #202124;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hide the placeholder clone CDK inserts into shelf drop lists */
+.shelf-item .cdk-drag-placeholder,
+.shelf-list .cdk-drag-placeholder {
+  /* display: none !important; */
+  overflow: hidden;
+  width: 0px;
+  background-color: aqua;
+}
+
+/* Make the source-position placeholder invisible in the book grid */
+.cdk-drag-placeholder {
+  opacity: 0 !important;
+}

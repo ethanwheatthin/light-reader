@@ -84,12 +84,12 @@
               <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Grid view">⊞</button>
               <button class="view-btn" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="List view">☰</button>
             </div>
-            <div class="backup-badge-wrapper">
+            <!-- <div class="backup-badge-wrapper">
               <button class="toolbar-btn" title="Import / Export" (click)="openImportExportModal()">⇄</button>
               @if (lastBackupTime) {
                 <span class="backup-badge">Updated {{ lastBackupTime }}</span>
               }
-            </div>
+            </div> -->
             <app-upload></app-upload>
           </div>
         </div>
@@ -128,11 +128,7 @@
               >
                 <button class="drag-handle list-drag-handle" cdkDragHandle (click)="$event.stopPropagation()" title="Drag to shelf">⠿</button>
                 <div class="list-cover">
-                  @if (getCoverImage(doc)) {
-                    <img [src]="getCoverImage(doc)" [alt]="doc.title" />
-                  } @else {
                     <div class="list-cover-fallback">{{ doc.type === 'epub' ? '📖' : '📄' }}</div>
-                  }
                 </div>
                 <div class="list-info">
                   <span class="list-title">{{ doc.title }}</span>
@@ -174,7 +170,7 @@
           <p>Upload an EPUB or PDF to get started</p>
           <div class="flex layout-row layout-align-center-center empty-actions" style="gap: 10px;">
             <app-upload></app-upload>
-            <button class="toolbar-btn" title="Import / Export" (click)="openImportExportModal()">⇄ Import / Export</button>
+            <!-- <button class="toolbar-btn" title="Import / Export" (click)="openImportExportModal()">⇄ Import / Export</button> -->
           </div>
         </div>
       }

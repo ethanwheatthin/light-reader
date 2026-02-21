@@ -42,6 +42,7 @@ export const LibrarySourcesActions = createActionGroup({
     'Scan Source Success': props<{
       source: LibrarySource;
       importedCount: number;
+      importedDocs: { id: string; title: string }[];
     }>(),
     'Scan Source Failure': props<{ id: string; error: string }>(),
   },

@@ -76,6 +76,7 @@ export class LibrarySourcesEffects {
             LibrarySourcesActions.scanSourceSuccess({
               source: result.source,
               importedCount: result.imported.length,
+              importedDocs: result.imported.map((d) => ({ id: d.id, title: d.title })),
             }),
             // Reload documents so newly imported files appear in the library
             ...(result.imported.length > 0 ? [DocumentsActions.loadDocuments()] : []),

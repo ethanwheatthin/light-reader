@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { map, mergeMap, catchError, switchMap } from 'rxjs/operators';
+import { map, mergeMap, catchError, switchMap, delay } from 'rxjs/operators';
 import { of, from, forkJoin } from 'rxjs';
 import { DocumentsActions } from './documents.actions';
 import { DocumentApiService } from '../../core/services/document-api.service';
@@ -9,6 +9,7 @@ import { BackupApiService } from '../../core/services/backup-api.service';
 import { OpenLibraryService } from '../../core/services/open-library.service';
 import { Document } from '../../core/models/document.model';
 import { ShelvesActions } from '../shelves/shelves.actions';
+import { LibrarySourcesActions } from '../library-sources/library-sources.actions';
 
 @Injectable()
 export class DocumentsEffects {
@@ -279,8 +280,10 @@ export class DocumentsEffects {
   fetchMetadataFromOpenLibrary$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DocumentsActions.fetchMetadataFromOpenLibrary),
-      mergeMap(({ id, title }) =>
-        this.openLibraryService.searchByTitle(title).pipe(
+      mergeMap(({ id, title }) => {
+        const cleanedTitle = this.cleanSearchTitle(title);
+        console.log(`[AutoFetch] Cleaned title: "${title}" → "${cleanedTitle}"`);
+        return this.openLibraryService.searchByTitle(cleanedTitle).pipe(
           mergeMap((results) => {
             if (results.length > 0) {
               return of(DocumentsActions.fetchMetadataSuccess({ id, metadata: results[0] }));
@@ -288,8 +291,8 @@ export class DocumentsEffects {
             return of({ type: 'NO_ACTION' as const });
           }),
           catchError(() => of({ type: 'NO_ACTION' as const }))
-        )
-      )
+        );
+      })
     )
   );
 
@@ -303,6 +306,137 @@ export class DocumentsEffects {
       ),
     { dispatch: false }
   );
+
+  // --- Auto-fetch metadata for newly uploaded / discovered documents ---
+
+  /** Single upload: auto-fetch metadata if the document has no existing metadata */
+  autoFetchOnUpload$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.uploadDocumentSuccess),
+        mergeMap(({ document }) => {
+          if (!document.metadata?.openLibraryKey) {
+            // Small delay to avoid overwhelming the Open Library API
+            return of(
+              DocumentsActions.fetchMetadataFromOpenLibrary({
+                id: document.id,
+                title: document.metadata?.title || document.title,
+              })
+            ).pipe(delay(500));
+          }
+          return of({ type: 'NO_ACTION' as const });
+        })
+      )
+  );
+
+  /** Bulk upload: auto-fetch metadata for each document without existing metadata */
+  autoFetchOnBulkUpload$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(DocumentsActions.uploadDocumentsSuccess),
+        mergeMap(({ documents }) => {
+          const docsNeedingMetadata = documents.filter((d) => !d.metadata?.openLibraryKey);
+          if (docsNeedingMetadata.length === 0) return of({ type: 'NO_ACTION' as const });
+          return from(docsNeedingMetadata).pipe(
+            // Stagger requests to avoid rate-limiting (1 second between each)
+            mergeMap((doc, index) =>
+              of(
+                DocumentsActions.fetchMetadataFromOpenLibrary({
+                  id: doc.id,
+                  title: doc.metadata?.title || doc.title,
+                })
+              ).pipe(delay(index * 1000))
+            )
+          );
+        })
+      )
+  );
+
+  /** Library source scan: auto-fetch metadata for each newly imported document */
+  autoFetchOnScan$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(LibrarySourcesActions.scanSourceSuccess),
+        mergeMap(({ importedDocs }) => {
+          if (!importedDocs || importedDocs.length === 0) return of({ type: 'NO_ACTION' as const });
+          return from(importedDocs).pipe(
+            mergeMap((doc, index) =>
+              of(
+                DocumentsActions.fetchMetadataFromOpenLibrary({
+                  id: doc.id,
+                  title: doc.title,
+                })
+              ).pipe(delay(index * 1000))
+            )
+          );
+        })
+      )
+  );
+
+  /**
+   * Clean a raw document title (often derived from a filename) into a better
+   * search query for Open Library.
+   *
+   * Examples:
+   *   "Harry Potter 4 - Harry Potter and the Goblet of Fire - J. K. Rowling & Mary Grandpre"
+   *     → "Harry Potter and the Goblet of Fire"
+   *   "7th Circle -- Tate James" → "7th Circle"
+   *   "The_Great_Gatsby.epub" → "The Great Gatsby"
+   */
+  private cleanSearchTitle(raw: string): string {
+    let title = raw;
+
+    // 1. Remove common file extensions
+    title = title.replace(/\.(epub|pdf|mobi|azw3?|fb2|djvu|cbr|cbz)$/i, '');
+
+    // 2. Replace underscores and dots (used as spaces in filenames) with spaces
+    title = title.replace(/[_.]/g, ' ');
+
+    // 3. Split on common delimiters: ` - `, ` -- `, ` — `, ` – `, or multiple hyphens
+    const segments = title.split(/\s+[-–—]{1,3}\s+/);
+
+    if (segments.length > 1) {
+      // Filter out segments that look like author names:
+      //   - contains & (multiple authors)
+      //   - starts with "by "
+      //   - is only 2–4 capitalized words (looks like "Firstname Lastname" / "J. K. Rowling")
+      const candidates = segments.filter((s) => {
+        const trimmed = s.trim();
+        if (/&/.test(trimmed)) return false;
+        if (/^\s*by\s+/i.test(trimmed)) return false;
+        // Match author-like patterns: 2-4 words that are all capitalized / initials
+        // e.g. "Tate James", "J. K. Rowling", "Mary Grandpre"
+        if (/^([A-Z][a-zA-Z]*\.?\s*){2,4}$/.test(trimmed) && trimmed.split(/\s+/).length <= 4) {
+          return false;
+        }
+        return true;
+      });
+      // If all segments were filtered out, use original segments
+      const pool = candidates.length > 0 ? candidates : segments;
+      // Pick the longest segment — usually the actual title
+      title = pool.reduce((a, b) => (a.length >= b.length ? a : b), '');
+    }
+
+    // 4. Remove series/volume markers like "Book 4", "Vol. 2", "#3"
+    title = title.replace(/\b(book|vol\.?|volume|part|#)\s*\d+\b/gi, '');
+    // Remove standalone numbers at the start or end (e.g. "4" in "Harry Potter 4")
+    title = title.replace(/^\d+\s+|\s+\d+$/g, '');
+
+    // 5. Remove parenthetical content, e.g. "(Illustrated Edition)"
+    title = title.replace(/\(.*?\)/g, '');
+
+    // 6. Remove square brackets, e.g. "[Kindle Edition]"
+    title = title.replace(/\[.*?\]/g, '');
+
+    // 7. Remove curly braces content
+    title = title.replace(/\{.*?\}/g, '');
+
+    // 8. Collapse whitespace and trim
+    title = title.replace(/\s+/g, ' ').trim();
+
+    // If cleaning reduced it to nothing, fall back to the original
+    return title || raw.trim();
+  }
 
   private readFileAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {

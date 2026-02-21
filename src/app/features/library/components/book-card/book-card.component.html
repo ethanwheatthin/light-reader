@@ -46,4 +46,10 @@
       </button>
     </div>
   }
+
+  <!-- Lightweight drag preview: small book icon -->
+  <div class="drag-preview" *cdkDragPreview>
+    <span class="drag-preview-icon">📖</span>
+    <span class="drag-preview-title">{{ doc.title }}</span>
+  </div>
 </div>
