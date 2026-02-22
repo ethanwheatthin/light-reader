@@ -39,12 +39,12 @@
         </div>
       }
 
-      @if (loading$ | async) {
+      <!-- @if (loading$ | async) {
       <div class="loading-state">
         <div class="loading-spinner"></div>
         <p>Loading your library...</p>
       </div>
-    }
+    } -->
 
     @if (filteredDocuments$ | async; as documents) {
       @if (documents.length > 0) {
