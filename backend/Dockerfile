@@ -1,16 +1,27 @@
+# ---- Build stage ----
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# ---- Production stage ----
 FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
-COPY . .
-RUN npm run build
+COPY --from=build /app/dist ./dist
 
 # Create uploads directory
 RUN mkdir -p uploads
 
 EXPOSE 3030
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/src/server.js"]

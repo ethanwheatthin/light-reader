@@ -2,13 +2,13 @@
   "name": "lib-reader-backend",
   "version": "1.0.0",
   "description": "PostgreSQL backend for lib-reader",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
-    "migration:run": "typeorm migration:run -d dist/data-source.js",
-    "migration:revert": "typeorm migration:revert -d dist/data-source.js",
+    "migration:run": "typeorm migration:run -d dist/src/data-source.js",
+    "migration:revert": "typeorm migration:revert -d dist/src/data-source.js",
     "typeorm": "typeorm-ts-node-commonjs"
   },
   "dependencies": {

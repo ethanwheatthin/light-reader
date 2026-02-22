@@ -7,10 +7,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-libreader}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-libreader_pass}
       POSTGRES_DB: ${POSTGRES_DB:-libreader}
-    ports:
-      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - libreader-net
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-libreader}']
       interval: 5s
@@ -35,10 +35,10 @@ services:
       PORT: 3030
       FILE_STORAGE_STRATEGY: filesystem
       NODE_ENV: production
-    ports:
-      - '3030:3030'
     volumes:
       - uploads:/app/uploads
+    networks:
+      - libreader-net
 
   frontend:
     build:
@@ -49,7 +49,13 @@ services:
     depends_on:
       - backend
     ports:
-      - '80:80'
+      - '${APP_PORT:-4600}:80'
+    networks:
+      - libreader-net
+
+networks:
+  libreader-net:
+    driver: bridge
 
 volumes:
   pgdata:

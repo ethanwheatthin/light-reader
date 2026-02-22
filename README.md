@@ -1,59 +1,119 @@
 # LibReader
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.3.
+An open-source EPUB/PDF reader application built with Angular 21, NgRx, Express, and PostgreSQL.
 
-## Development server
+## Quick Start with Docker
 
-To start a local development server, run:
+The fastest way to run LibReader is with Docker Compose. This starts the Angular frontend, the Express backend, and a PostgreSQL database — all in one command.
 
-```bash
-ng serve
-```
+### Prerequisites
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### 1. Clone the repository
 
 ```bash
-ng generate component component-name
+git clone https://github.com/<your-org>/light-reader.git
+cd light-reader
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+### 2. (Optional) Configure environment
+
+Copy the example env file and adjust values if needed:
 
 ```bash
-ng generate --help
+cp .env.example .env
 ```
 
-## Building
+| Variable            | Default           | Description                              |
+|---------------------|-------------------|------------------------------------------|
+| `POSTGRES_USER`     | `libreader`       | PostgreSQL username                      |
+| `POSTGRES_PASSWORD` | `libreader_pass`  | PostgreSQL password                      |
+| `POSTGRES_DB`       | `libreader`       | PostgreSQL database name                 |
+| `APP_PORT`          | `4600`            | Port the app is accessible on            |
 
-To build the project run:
+### 3. Start the application
+
+```bash
+docker compose up -d
+```
+
+This builds and starts three containers:
+
+| Container              | Description                        |
+|------------------------|------------------------------------|
+| `libreader-frontend`   | Angular app served by Nginx        |
+| `libreader-backend`    | Express API server                 |
+| `libreader-db`         | PostgreSQL 16 database             |
+
+The database migrations run automatically on first startup.
+
+### 4. Open LibReader
+
+Navigate to **http://localhost:4600** in your browser.
+
+### Stopping
+
+```bash
+docker compose down
+```
+
+To also delete stored data (books, database):
+
+```bash
+docker compose down -v
+```
+
+### Updating
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+---
+
+## Development
+
+### Local development server
+
+```bash
+npm install
+npm start
+```
+
+Open `http://localhost:4200/`. The app auto-reloads on file changes.
+
+### Backend (requires PostgreSQL running)
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### Building
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Build artifacts are stored in `dist/`.
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+### Running unit tests
 
 ```bash
-ng test
+npm test
 ```
 
-## Running end-to-end tests
+Tests use [Vitest](https://vitest.dev/).
 
-For end-to-end (e2e) testing, run:
+## Architecture
 
-```bash
-ng e2e
-```
+- **Frontend:** Angular 21 standalone components, NgRx state management, Angular Material
+- **Backend:** Express + TypeORM (PostgreSQL)
+- **Storage:** File uploads stored on disk (`uploads/` volume), metadata in PostgreSQL
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## License
 
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+See [LICENSE](LICENSE) for details.
