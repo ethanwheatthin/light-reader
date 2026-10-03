@@ -465,6 +465,96 @@
             </div>
           }
 
+          <!-- Read aloud (Speaches TTS server) -->
+          @if (!isPdf) {
+            <div class="settings-section tts-section">
+              <span class="section-label">Read Aloud (TTS server)</span>
+
+              <label class="tts-field">
+                <span class="tts-field-label">Server URL</span>
+                <input
+                  class="tts-input"
+                  type="url"
+                  placeholder="http://localhost:8000"
+                  [value]="tts.serverUrl()"
+                  (input)="onTtsUrlInput($any($event.target).value)"
+                  spellcheck="false"
+                  autocomplete="off" />
+              </label>
+
+              <button
+                class="tts-test-btn"
+                (click)="testTtsConnection()"
+                [disabled]="ttsTesting() || !tts.serverUrl().trim()">
+                {{ ttsTesting() ? 'Testing…' : 'Test connection' }}
+              </button>
+
+              @if (ttsResult(); as r) {
+                <p class="tts-result" [class.ok]="r.ok" [class.fail]="!r.ok" role="status">
+                  {{ r.ok ? '✓' : '✕' }} {{ r.message }}
+                </p>
+              }
+
+              <label class="tts-field">
+                <span class="tts-field-label">Model</span>
+                @if ((ttsResult()?.models ?? []).length) {
+                  <select class="tts-input" (change)="onTtsModelChange($any($event.target).value)">
+                    @for (m of ttsResult()?.models ?? []; track m) {
+                      <option [value]="m" [selected]="m === tts.model()">{{ m }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    class="tts-input"
+                    type="text"
+                    [value]="tts.model()"
+                    (input)="onTtsModelInput($any($event.target).value)"
+                    spellcheck="false" />
+                }
+              </label>
+
+              <label class="tts-field">
+                <span class="tts-field-label">Voice</span>
+                @if (ttsVoiceGroups.length) {
+                  <select class="tts-input" (change)="onTtsVoiceInput($any($event.target).value)">
+                    @for (g of ttsVoiceGroups; track g.label) {
+                      <optgroup [label]="g.label">
+                        @for (v of g.voices; track v.id) {
+                          <option [value]="v.id" [selected]="v.id === tts.voice()">
+                            {{ v.id }}{{ v.gender ? ' (' + v.gender + ')' : '' }}
+                          </option>
+                        }
+                      </optgroup>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    class="tts-input"
+                    type="text"
+                    [value]="tts.voice()"
+                    (input)="onTtsVoiceInput($any($event.target).value)"
+                    spellcheck="false" />
+                }
+              </label>
+
+              <label class="tts-field">
+                <span class="tts-field-label">Speech speed: {{ tts.speed() }}×</span>
+                <input
+                  type="range"
+                  [min]="TTS_SPEED_MIN"
+                  [max]="TTS_SPEED_MAX"
+                  [step]="TTS_SPEED_STEP"
+                  [value]="tts.speed()"
+                  (input)="onTtsSpeedInput($any($event.target).value)" />
+              </label>
+
+              <p class="speed-hint">
+                Your Speaches server must allow CORS from this app's origin. Start reading with the
+                speaker button in the top bar.
+              </p>
+            </div>
+          }
+
         </div>
       }
 

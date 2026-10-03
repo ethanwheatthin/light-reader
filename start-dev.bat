@@ -42,14 +42,14 @@ if not exist "backend\node_modules\" (
 
 REM Clean up any existing Docker containers
 echo Cleaning up existing Docker containers...
-docker compose down >nul 2>&1
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down >nul 2>&1
 
 REM Force remove the specific container if it exists
 docker rm -f libreader-db >nul 2>&1
 
 REM Start PostgreSQL container
 echo Starting PostgreSQL database...
-docker compose up -d postgres
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
 if errorlevel 1 (
     echo Failed to start PostgreSQL container!
     pause
@@ -59,7 +59,7 @@ if errorlevel 1 (
 REM Wait for PostgreSQL to be healthy
 echo Waiting for database to be ready...
 :waitloop
-docker compose ps postgres | findstr "healthy" >nul 2>&1
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps postgres | findstr "healthy" >nul 2>&1
 if errorlevel 1 (
     timeout /t 1 /nobreak >nul
     goto waitloop
@@ -129,10 +129,10 @@ start "Angular App" cmd /k "npm start"
 
 echo.
 echo All services are starting:
-echo - PostgreSQL: localhost:5432 (Docker)
+echo - PostgreSQL: localhost:5433 (Docker)
 echo - Backend: http://localhost:3030
 echo - Angular: http://localhost:4200
 echo.
-echo To stop the database: docker compose down
+echo To stop the database: docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 echo Close this window or press any key to exit...
 pause >nul

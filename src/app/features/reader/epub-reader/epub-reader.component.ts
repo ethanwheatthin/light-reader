@@ -30,6 +30,7 @@ import {
 import { EpubReaderSettingsService } from './services/epub-reader-settings.service';
 import { EpubAccessibilityService } from './services/epub-accessibility.service';
 import { EpubFollowModeService } from './services/epub-follow-mode.service';
+import { EpubTtsService } from './services/epub-tts.service';
 
 const LOCATIONS_CACHE_PREFIX = 'epub-locations-';
 
@@ -37,7 +38,7 @@ const LOCATIONS_CACHE_PREFIX = 'epub-locations-';
   selector: 'app-epub-reader',
   standalone: true,
   imports: [CommonModule, FormsModule, UnifiedSettingsPanelComponent],
-  providers: [EpubReaderSettingsService, EpubAccessibilityService, EpubFollowModeService],
+  providers: [EpubReaderSettingsService, EpubAccessibilityService, EpubFollowModeService, EpubTtsService],
   templateUrl: './epub-reader.component.html',
   styleUrl: './epub-reader.component.css'
 })
@@ -54,6 +55,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   protected settings = inject(EpubReaderSettingsService);
   private accessibility = inject(EpubAccessibilityService);
   private followModeService = inject(EpubFollowModeService);
+  private tts = inject(EpubTtsService);
   private book: any;
   private rendition: any;
 
@@ -141,6 +143,8 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   get zoomLevel() { return this.settings.zoomLevel; }
   get pageLayout() { return this.settings.pageLayout; }
   get followModePaused() { return this.followModeService.paused; }
+  get ttsState() { return this.tts.state; }
+  get ttsError() { return this.tts.error; }
   get currentSettings(): SettingsState { return this.settings.currentSettings; }
 
   async ngOnInit(): Promise<void> {
@@ -304,6 +308,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     // Wire up services that depend on the rendition
     this.accessibility.setRendition(this.rendition);
     this.followModeService.setRendition(this.rendition);
+    this.tts.setRendition(this.rendition);
 
     // Load table of contents
     await this.loadTableOfContents();
@@ -366,6 +371,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.cleanupKeyboardShortcuts();
     this.detachIframeKeyboardListeners();
     this.followModeService.cleanup();
+    this.tts.stop();
     this.teardownResizeObserver();
     if (this.focusModeControlsTimeout) {
       clearTimeout(this.focusModeControlsTimeout);
@@ -602,6 +608,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     // Handle follow mode toggle or speed change
     if (followModeChanged) {
       if (newSettings.followMode) {
+        this.tts.stop();
         this.followModeService.setSpeed(newSettings.followModeSpeed);
         this.followModeService.start();
       } else {
@@ -1217,6 +1224,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   // ---------------------------------------------------------------------------
 
   private updateLocation(location: any): void {
+    this.tts.onRelocated();
     this.currentLocation = location.start.displayed.page
       ? `Page ${location.start.displayed.page} of ${location.start.displayed.total}`
       : 'Reading...';
@@ -1268,6 +1276,28 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
+  // Read aloud (TTS)
+  // ---------------------------------------------------------------------------
+
+  toggleTts(): void {
+    if (this.tts.state() === 'idle' && this.settings.followMode()) {
+      this.settings.followMode.set(false);
+      this.followModeService.cleanup();
+      this.settings.saveSettings();
+    }
+    this.tts.toggle();
+  }
+
+  skipTts(delta: number): void {
+    this.tts.skip(delta);
+  }
+
+  stopTts(): void {
+    this.tts.stop();
+    this.tts.error.set(null);
+  }
+
+  // ---------------------------------------------------------------------------
   // Keyboard shortcuts
   // ---------------------------------------------------------------------------
 
@@ -1282,6 +1312,27 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
         this.settings.focusMode.update(v => !v);
         this.focusModeChange.emit(this.settings.focusMode());
         this.settings.saveSettings();
+      }
+    }
+
+    // Read-aloud controls
+    if (this.tts.state() !== 'idle' && !isInputActive) {
+      if (event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        this.tts.toggle();
+        return;
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        this.tts.skip(1);
+        return;
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        this.tts.skip(-1);
+        return;
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        this.stopTts();
+        return;
       }
     }
 
@@ -1566,6 +1617,7 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     // Re-wire services to the new rendition
     this.accessibility.setRendition(this.rendition);
     this.followModeService.setRendition(this.rendition);
+    this.tts.setRendition(this.rendition);
 
     // Re-register themes
     this.registerThemes();

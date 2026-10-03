@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { 
   ThemeOption, 
@@ -25,6 +25,14 @@ import {
   LETTER_SPACING_STEP,
   PRESET_COLOR_PALETTES,
 } from '../../../../core/models/document.model';
+import { TtsApiService, TtsConnectionResult, TtsVoice } from '../../../../core/services/tts-api.service';
+import {
+  TtsSettingsService,
+  TTS_SPEED_MIN,
+  TTS_SPEED_MAX,
+  TTS_SPEED_STEP,
+  normalizeServerUrl,
+} from '../../../../core/services/tts-settings.service';
 
 export interface SettingsState {
   fontSize: number;
@@ -53,7 +61,10 @@ export type TabType = 'settings' | 'chapters' | 'pages' | 'bookmarks' | 'accessi
   templateUrl: './unified-settings-panel.component.html',
   styleUrl: './unified-settings-panel.component.css'
 })
-export class UnifiedSettingsPanelComponent {
+export class UnifiedSettingsPanelComponent implements OnInit {
+  protected tts = inject(TtsSettingsService);
+  private ttsApi = inject(TtsApiService);
+
   @Input() isOpen = false;
   @Input() theme: ThemeOption = 'light';
   @Input() isPdf = false;
@@ -315,6 +326,92 @@ export class UnifiedSettingsPanelComponent {
   exitFocusMode(): void {
     this.emitSettings({ ...this.settings, focusMode: false });
     this.closePanel();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Read aloud (TTS server) settings
+  // ---------------------------------------------------------------------------
+
+  readonly TTS_SPEED_MIN = TTS_SPEED_MIN;
+  readonly TTS_SPEED_MAX = TTS_SPEED_MAX;
+  readonly TTS_SPEED_STEP = TTS_SPEED_STEP;
+
+  ttsTesting = signal<boolean>(false);
+  ttsResult = signal<TtsConnectionResult | null>(null);
+
+  onTtsUrlInput(value: string): void {
+    this.tts.serverUrl.set(value);
+    this.ttsResult.set(null);
+    this.tts.save();
+  }
+
+  onTtsModelInput(value: string): void {
+    this.tts.model.set(value);
+    this.tts.save();
+  }
+
+  onTtsVoiceInput(value: string): void {
+    this.tts.voice.set(value);
+    this.tts.save();
+  }
+
+  onTtsSpeedInput(value: string): void {
+    const v = Math.min(Math.max(parseFloat(value) || 1, TTS_SPEED_MIN), TTS_SPEED_MAX);
+    this.tts.speed.set(Math.round(v * 10) / 10);
+    this.tts.save();
+  }
+
+  ngOnInit(): void {
+    if (this.tts.serverUrl().trim()) void this.testTtsConnection();
+  }
+
+  onTtsModelChange(value: string): void {
+    this.tts.model.set(value);
+    const voices = this.ttsResult()?.voicesByModel[value];
+    if (voices?.length && !voices.some((v) => v.id === this.tts.voice())) {
+      this.tts.voice.set(voices[0].id);
+    }
+    this.tts.save();
+  }
+
+  get ttsVoiceGroups(): { label: string; voices: TtsVoice[] }[] {
+    const voices = this.ttsResult()?.voicesByModel[this.tts.model()] ?? [];
+    const groups = new Map<string, TtsVoice[]>();
+    for (const v of voices) {
+      const key = v.language ?? 'Other';
+      groups.set(key, [...(groups.get(key) ?? []), v]);
+    }
+    return [...groups].map(([lang, list]) => ({ label: this.languageLabel(lang), voices: list }));
+  }
+
+  private languageLabel(code: string): string {
+    try {
+      return new Intl.DisplayNames(['en'], { type: 'language' }).of(code) ?? code;
+    } catch {
+      return code;
+    }
+  }
+
+  async testTtsConnection(): Promise<void> {
+    this.ttsTesting.set(true);
+    this.ttsResult.set(null);
+    try {
+      const result = await this.ttsApi.testConnection(this.tts.serverUrl());
+      this.ttsResult.set(result);
+      if (result.ok) {
+        this.tts.serverUrl.set(normalizeServerUrl(this.tts.serverUrl()));
+        if (result.models.length && !result.models.includes(this.tts.model())) {
+          this.tts.model.set(result.models[0]);
+        }
+        const voices = result.voicesByModel[this.tts.model()];
+        if (voices?.length && !voices.some((v) => v.id === this.tts.voice())) {
+          this.tts.voice.set(voices[0].id);
+        }
+        this.tts.save();
+      }
+    } finally {
+      this.ttsTesting.set(false);
+    }
   }
 
   toggleFollowMode(): void {

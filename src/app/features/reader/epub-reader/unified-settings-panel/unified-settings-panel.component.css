@@ -1417,3 +1417,58 @@
     padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
   }
 }
+
+/* Read aloud (TTS) */
+.tts-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tts-field-label {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.tts-input {
+  padding: 0.5rem;
+  background: var(--button-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--panel-text);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tts-test-btn {
+  padding: 0.5rem;
+  background: var(--button-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--panel-text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tts-test-btn:hover:not(:disabled) {
+  background: var(--button-hover);
+}
+
+.tts-test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tts-result {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.tts-result.ok {
+  color: #16a34a;
+}
+
+.tts-result.fail {
+  color: #dc2626;
+}

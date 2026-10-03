@@ -603,3 +603,42 @@
 .epub-container.pdf-mode[data-theme='sepia'] .pdf-canvas {
   box-shadow: 0 2px 12px rgba(95, 75, 50, 0.2);
 }
+
+/* Read aloud indicator */
+.tts-indicator {
+  position: fixed;
+  bottom: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(79, 70, 229, 0.4);
+  max-width: 90vw;
+}
+
+.tts-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tts-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.tts-error {
+  font-weight: 500;
+}

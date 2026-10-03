@@ -1,0 +1,9 @@
+{
+  "/tts-proxy": {
+    "target": "https://7b3172692.ethancollins.olares.com",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": { "^/tts-proxy": "" },
+    "logLevel": "warn"
+  }
+}

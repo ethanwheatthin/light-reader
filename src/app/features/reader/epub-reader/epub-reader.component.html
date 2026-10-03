@@ -21,6 +21,21 @@
     
     <!-- Right side icons -->
     <div class="top-bar-actions">
+      <!-- Read aloud (TTS) -->
+      @if (!isPdf) {
+        <button class="top-bar-btn" [class.active]="ttsState() !== 'idle'" (mousedown)="$event.preventDefault()" (click)="toggleTts()"
+          [attr.aria-label]="ttsState() === 'playing' || ttsState() === 'loading' ? 'Pause read aloud' : 'Read aloud'"
+          [title]="ttsState() === 'playing' || ttsState() === 'loading' ? 'Pause read aloud' : 'Read aloud'">
+          @if (ttsState() === 'playing' || ttsState() === 'loading') {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          } @else {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>
+            </svg>
+          }
+        </button>
+      }
+
       <!-- Fullscreen toggle -->
       <button class="top-bar-btn" (click)="toggleFullscreen()" [attr.aria-label]="isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'" [title]="isFullscreen() ? 'Exit fullscreen' : 'Fullscreen'">
         @if (isFullscreen()) {
@@ -151,6 +166,22 @@
       </button>
     </div>
   </footer>
+
+  <!-- Read aloud status -->
+  @if (ttsState() !== 'idle' || ttsError()) {
+    <div class="tts-indicator" role="status">
+      @if (ttsError()) {
+        <span class="tts-error">{{ ttsError() }}</span>
+        <button class="tts-btn" (click)="stopTts()" aria-label="Dismiss">✕</button>
+      } @else {
+        <button class="tts-btn" (mousedown)="$event.preventDefault()" (click)="skipTts(-1)" aria-label="Previous sentence" title="Previous sentence (←)">⏮</button>
+        <button class="tts-btn" (mousedown)="$event.preventDefault()" (click)="toggleTts()" [attr.aria-label]="ttsState() === 'paused' ? 'Resume' : 'Pause'" [title]="ttsState() === 'paused' ? 'Resume (Space)' : 'Pause (Space)'">{{ ttsState() === 'paused' ? '▶' : '⏸' }}</button>
+        <button class="tts-btn" (mousedown)="$event.preventDefault()" (click)="skipTts(1)" aria-label="Next sentence" title="Next sentence (→)">⏭</button>
+        <span class="tts-label">{{ ttsState() === 'loading' ? 'Loading audio…' : ttsState() === 'paused' ? 'Paused' : 'Reading aloud' }}</span>
+        <button class="tts-btn" (mousedown)="$event.preventDefault()" (click)="stopTts()" aria-label="Stop reading" title="Stop (Esc)">⏹</button>
+      }
+    </div>
+  }
 
   <!-- Follow mode indicator -->
   @if (followMode()) {
